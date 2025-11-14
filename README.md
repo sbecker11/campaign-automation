@@ -108,9 +108,9 @@ tree brands/summer_co/outputs/summer_promo_2024 -L 3
 # Open all generated images
 open brands/summer_co/outputs/summer_promo_2024/
 
-# View specific formats
-open brands/summer_co/outputs/summer_promo_2024/sunscreen_spf50/1x1/
-open brands/summer_co/outputs/summer_promo_2024/beach_towel/9x16/
+# View all formats for each product in the campaign
+open brands/summer_co/outputs/summer_promo_2024/sunscreen_spf50/*/*.png
+open brands/summer_co/outputs/summer_promo_2024/beach_towel/*/*.png
 
 # View generation report
 cat brands/summer_co/outputs/summer_promo_2024/reports/generation_report.json | python -m json.tool

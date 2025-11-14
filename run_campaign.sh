@@ -96,6 +96,9 @@ if [ -z "$OPENAI_API_KEY" ]; then
     exit 1
 fi
 
+# Extract campaign_id from brief for later use
+CAMPAIGN_ID=$(grep "^campaign_id:" "$FULL_BRIEF_PATH" | sed 's/campaign_id: *"\?\([^"]*\)"\?/\1/' | tr -d '"')
+
 # Run the pipeline with full path to brief
 PYTHONPATH=src python src/pipeline.py \
     --brand "$BRAND" \
@@ -110,8 +113,25 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "║     ✅ Campaign Generated Successfully                 ║"
     echo "╚════════════════════════════════════════════════════════╝"
     echo ""
-    echo "📂 View outputs: $BRAND/outputs/"
+    echo "📂 View outputs: $BRAND/outputs/$CAMPAIGN_ID/"
     echo ""
+    
+    # Open generated images for each product
+    if [ -d "$BRAND/outputs/$CAMPAIGN_ID" ]; then
+        echo "🖼️  Opening generated images..."
+        
+        # Find all product directories (excluding reports)
+        for product_dir in "$BRAND/outputs/$CAMPAIGN_ID"/*/ ; do
+            if [ -d "$product_dir" ] && [[ ! "$product_dir" =~ /reports/$ ]]; then
+                product_name=$(basename "$product_dir")
+                echo "   📸 Opening $product_name images..."
+                
+                # Open all PNG files for this product across all formats
+                open "$product_dir"/*/*.png 2>/dev/null || echo "      (No images found for $product_name)"
+            fi
+        done
+        echo ""
+    fi
 else
     echo ""
     echo "❌ Pipeline failed with exit code: $EXIT_CODE"
