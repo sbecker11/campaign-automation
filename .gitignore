@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Environment
+.env
+
+# Outputs and temp files
+brands/*/outputs/
+temp/
+*.log
+archive/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Distribution
+dist/
+build/
+*.egg-info/

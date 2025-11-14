@@ -1,0 +1,24 @@
+campaign_id: "sunglasses_promo_2024"
+campaign_name: "Sunglasses Summer Promotion"
+
+products:
+  - product_id: "aviator_sunglasses"
+    name: "Classic Aviator Sunglasses"
+    description: "UV-protected aviator sunglasses with polarized lenses"
+    use_existing_assets: "assets/sunglasses/"   # ← Uses pre-existing image
+
+target_market: "US"
+target_audience: "outdoor_enthusiasts_25-45"
+campaign_message: "See your adventure clearly"
+
+brand_guidelines:
+  brand_colors:
+    - "#FF6B35"
+    - "#004E89"
+    - "#FFFFFF"
+  logo_required: true
+
+aspect_ratios:
+  - "1:1"
+  - "9:16"
+  - "16:9"
