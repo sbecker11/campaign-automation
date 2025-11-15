@@ -3,20 +3,20 @@ Campaign Automation Pipeline
 
 Main orchestration script for the creative automation pipeline.
 """
-
 import logging
 import sys
 from pathlib import Path
-import click
-from datetime import datetime
 from typing import Dict
+from datetime import datetime
+import click
 
-from brief_parser import BriefParser
-from image_generator import ImageGenerator
-from asset_processor import AssetProcessor
-from brand_validator import BrandValidator
-from content_checker import ContentChecker
-from report_generator import ReportGenerator
+from src.brief_parser import BriefParser
+from src.image_generator import ImageGenerator
+from src.asset_processor import AssetProcessor
+from src.brand_validator import BrandValidator
+from src.content_checker import ContentChecker
+from src.report_generator import ReportGenerator
+
 
 try:
     from halo import Halo

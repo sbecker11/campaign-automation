@@ -10,16 +10,21 @@ AI-powered campaign asset generation for social ad campaigns using DALL-E 3, com
 
 ### 1. Clone and Navigate
 ```bash
+cd ~
+mkdir workspace-campaign-automation
 cd workspace-campaign-automation
+git clone git@github.com:sbecker11/campaign-automation.git
+cd campaign-automation
 ```
 
-### 2. Install Dependencies
+### 2. Create the Virtual Environment
 ```bash
-# Create virtual environment (optional but recommended)
+# Create and activeate the virtual environment 
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install requirements
+# Upgrade pip and nstall requirements into the active virtual environment
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -607,3 +612,47 @@ For a 2-3 minute demo video, follow this flow:
 
 **GitHub:** https://github.com/sbecker11
 **LinkedIn:** https://linkedin.com/in/shawnbecker
+
+## Testing
+
+### Run All Tests with Coverage
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run tests with coverage report
+pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+
+# View HTML coverage report
+open htmlcov/index.html
+```
+
+### Test Suite Overview
+
+- **Total Tests**: 78 passing, 2 skipped
+- **Code Coverage**: 75%
+- **Execution Time**: ~2.5 seconds
+
+### Run Specific Test Files
+```bash
+# Test a specific module
+pytest tests/test_brief_parser.py -v
+
+# Test with verbose output
+pytest tests/ -v
+
+# Run tests without coverage (faster)
+pytest tests/
+```
+
+### Coverage Targets
+
+- `brand_validator.py`: 95%
+- `content_checker.py`: 88%
+- `image_generator.py`: 88%
+- `brief_parser.py`: 83%
+- `report_generator.py`: 82%
+- `utils.py`: 100%
+- `pipeline.py`: 64%
+- `asset_processor.py`: 62%
+
