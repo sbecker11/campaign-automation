@@ -108,9 +108,12 @@ class ImageGenerator:
                 f"Suitable for social media advertising with emotional appeal that conveys: {campaign_message}."
             )
         
+        # CRITICAL: Avoid color bars and overlays
         prompt_parts.extend([
             "Photography should be clean, professional, and suitable for a global consumer brand.",
-            "No text or watermarks in the image."
+            "No text or watermarks in the image.",
+            "DO NOT include color swatches, color bars, or brand color strips in the image.",
+            "Natural product photography only - no graphic design elements or overlays."
         ])
         
         return '\n'.join(prompt_parts)
