@@ -95,13 +95,14 @@ class ReportGenerator:
                 for validation in result.get('validations', []):
                     all_validations.append(validation)
                     
-                    # Count checks
-                    brand_val = validation.get('brand_validation', {})
-                    if brand_val.get('overall_compliant'):
-                        passed_checks += 1
-                    total_checks += 1
+                    # Count checks (only if campaign_validation exists)
+                    campaign_val = validation.get('campaign_validation', {})
+                    if campaign_val:
+                        if campaign_val.get('overall_compliant', True):
+                            passed_checks += 1
+                        total_checks += 1
         
-        compliance_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 0
+        compliance_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 100.0
         
         report = {
             'campaign_id': brief.get('campaign_id'),
@@ -135,7 +136,7 @@ if __name__ == '__main__':
                 {
                     'variant': '/path/to/variant1.png',
                     'ratio': '1:1',
-                    'brand_validation': {
+                    'campaign_validation': {
                         'overall_compliant': True,
                         'checks': {}
                     },

@@ -15,7 +15,7 @@ def mock_components():
     with patch('src.pipeline.CampaignParser') as mock_parser, \
          patch('src.pipeline.ImageGenerator') as mock_img_gen, \
          patch('src.pipeline.AssetProcessor') as mock_processor, \
-         patch('src.pipeline.BrandValidator') as mock_validator, \
+         patch('src.pipeline.CampaignValidator') as mock_validator, \
          patch('src.pipeline.ContentChecker') as mock_checker, \
          patch('src.pipeline.ReportGenerator') as mock_reporter:
         
@@ -31,8 +31,9 @@ def mock_components():
         mock_processor_instance = MagicMock()
         mock_processor.return_value = mock_processor_instance
         
-        # Setup BrandValidator mock
+        # Setup CampaignValidator mock
         mock_validator_instance = MagicMock()
+        mock_validator_instance.validate.return_value = {'overall_compliant': True}
         mock_validator.return_value = mock_validator_instance
         
         # Setup ContentChecker mock
@@ -283,7 +284,6 @@ def test_pipeline_generates_reports(mock_components, sample_brief_dict, temp_dir
     Image.new('RGB', (100, 100)).save(test_img_path)
     mock_components['img_gen'].generate.return_value = str(test_img_path)
     mock_components['processor'].create_variant.return_value = temp_dir / "var.png"
-    mock_components['validator'].validate.return_value = {'overall_compliant': True}
     
     pipeline = CampaignPipeline(brand_dir)
     output_dir = temp_dir / "output"

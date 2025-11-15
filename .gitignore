@@ -25,6 +25,11 @@ temp/
 *.jpg
 *.jpeg
 
+# Allow logo files in assets directory
+!assets/*.png
+!assets/*.jpg
+!assets/*.jpeg
+
 # Testing
 .pytest_cache/
 .coverage

@@ -100,8 +100,8 @@ pytest tests/ -v --tb=short
 # View example campaign configuration
 cat inputs/campaigns/example_campaign.yaml
 
-# Check brand logo
-open assets/logo.png
+# Check logo
+open assets/generated_logo.png
 
 # View project structure
 tree inputs/ -L 2
@@ -209,13 +209,13 @@ campaign-automation/
 │           │   └── beach_towel/
 │           └── reports/                # Generation and compliance reports
 ├── assets/
-│   └── logo.png                        # Brand logo (auto-generated if missing)
+│   └── generated_logo.png              # Logo (auto-generated if missing)
 ├── src/                                # Source code
 │   ├── pipeline.py                     # Main orchestrator
 │   ├── campaign_parser.py              # YAML parsing
 │   ├── image_generator.py              # DALL-E 3 integration
 │   ├── asset_processor.py              # Image processing
-│   ├── brand_validator.py              # CV-based validation
+│   ├── campaign_validator.py           # Campaign compliance validation
 │   ├── content_checker.py              # Content compliance
 │   ├── report_generator.py             # JSON reports
 │   └── utils.py                        # Utilities
@@ -383,7 +383,8 @@ content_safety:
 YAML
 
 # 2. (Optional) Add custom logo
-cp your_logo.png assets/logo.png
+cp your_logo.png assets/generated_logo.png
+# Or specify a custom path in the campaign YAML: logo_path: "path/to/your/logo.png"
 
 # 3. Run campaign
 ./run_campaign.sh inputs/campaigns/my_campaign.yaml
@@ -443,7 +444,7 @@ cp your_logo.png assets/logo.png
 ### "Logo file not found"
 ```bash
 # Check if logo exists
-ls -lh assets/logo.png
+ls -lh assets/generated_logo.png
 
 # Pipeline will auto-create default logo if missing
 ./run_campaign.sh
@@ -604,7 +605,6 @@ pytest tests/
 
 ### Coverage Targets
 
-- `brand_validator.py`: 95%
 - `content_checker.py`: 88%
 - `image_generator.py`: 88%
 - `campaign_parser.py`: 83%

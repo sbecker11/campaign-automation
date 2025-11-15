@@ -20,7 +20,8 @@ brand_guidelines:
     - "#FF6B35"
     - "#004E89"
     - "#FFFFFF"
-  logo_required: false
+  logo_required: true
+  logo_path: "assets/spexture.com-logo.png"
 
 aspect_ratios:
   - "1:1"

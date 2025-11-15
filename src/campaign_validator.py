@@ -1,7 +1,8 @@
 """
-Brand Validator
+Campaign Validator
 
-Computer vision-based brand compliance checking.
+Computer vision-based campaign compliance checking.
+Validates images against rules defined in campaign YAML files.
 """
 
 import logging
@@ -12,21 +13,21 @@ import numpy as np
 from PIL import Image
 
 
-class BrandValidator:
-    """Validate brand compliance using computer vision."""
+class CampaignValidator:
+    """Validate campaign compliance using computer vision."""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
-    def validate(self, image_path: Path, brief: Dict) -> Dict:
-        """Perform comprehensive brand validation."""
+    def validate(self, image_path: Path, campaign: Dict) -> Dict:
+        """Perform comprehensive campaign validation."""
         results = {
             'image_path': str(image_path),
             'overall_compliant': True,
             'checks': {}
         }
         
-        brand_guidelines = brief.get('brand_guidelines', {})
+        brand_guidelines = campaign.get('brand_guidelines', {})
         
         if brand_guidelines.get('logo_required'):
             logo_path = brand_guidelines.get('logo_path')
@@ -87,7 +88,7 @@ class BrandValidator:
         }
     
     def _validate_colors(self, image_path: Path, brand_colors: List[str]) -> Dict:
-        """Validate presence of brand colors."""
+        """Validate presence of campaign brand colors."""
         image = Image.open(image_path).convert('RGB')
         image.thumbnail((300, 300))
         
@@ -143,3 +144,4 @@ class BrandValidator:
         distance = np.sqrt(sum((c1 - c2) ** 2 for c1, c2 in zip(color1, color2)))
         max_distance = np.sqrt(3 * 255 ** 2)
         return 1 - (distance / max_distance)
+
