@@ -6,6 +6,7 @@
 3. Have terminal ready
 4. Clear your demo directory: `rm -rf ~/demo-workspace`
 5. Practice the git clone URL
+6. **Set up .env file:** Create `.env` file with `OPENAI_API_KEY=sk-your-key-here` (needed for image generation)
 
 ---
 
@@ -18,11 +19,13 @@
 **DO:**
 ```bash
 # Create parent directory
-mkdir -p ~/demo-workspace
-cd ~/demo-workspace
+mkdir -p ~/demo-workspace;
+
+cd ~/demo-workspace;
 
 # Clone from GitHub (use your actual repo URL)
-git clone https://github.com/YOUR_USERNAME/workspace-campaign-automation.git
+git clone https://github.com/YOUR_USERNAME/workspace-campaign-automation.git;
+
 cd workspace-campaign-automation
 
 # Quick look at structure
@@ -34,14 +37,22 @@ ls -la
 **DO:**
 ```bash
 # Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv;
+source venv/bin/activate;
 
 # Install dependencies
-pip install -q -r requirements.txt
+pip install -q -r requirements.txt;
+
+# Install package in editable mode (so imports work)
+pip install -e .;
 ```
 
-**SAY:** "Quick setup - installing dependencies..."
+**SAY:** "Quick setup - installing dependencies and setting up the package..."
+
+**NOTE:** Make sure you have a `.env` file with `OPENAI_API_KEY` set before running the pipeline. If not, create it:
+```bash
+echo 'OPENAI_API_KEY=sk-your-key-here' > .env
+```
 
 ---
 
@@ -52,11 +63,11 @@ pip install -q -r requirements.txt
 **DO:**
 ```bash
 # Show brand directories
-ls brand/
-tree brand/ -L 1
+ls brands/
+tree brands/ -L 1
 
 # Show campaign inputs
-tree inputs/ -L 2
+tree brands/summer_co/inputs/ -L 2
 ```
 
 **SAY:** "Each brand has its logo and assets. Campaign briefs are YAML configs - here's one..."
@@ -64,7 +75,7 @@ tree inputs/ -L 2
 **DO:**
 ```bash
 # Show brief
-cat inputs/briefs/example_campaign.yaml | head -25
+cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml | head -25
 ```
 
 **POINT OUT:**
@@ -81,8 +92,8 @@ cat inputs/briefs/example_campaign.yaml | head -25
 
 **DO:**
 ```bash
-# Run the pipeline
-python src/pipeline.py --brief inputs/briefs/example_campaign.yaml
+# Run the pipeline (venv should be activated from setup)
+python src/pipeline.py --brief brands/summer_co/inputs/briefs/summer_promo_2024.yaml
 ```
 
 **SAY WHILE RUNNING:**
@@ -101,20 +112,26 @@ python src/pipeline.py --brief inputs/briefs/example_campaign.yaml
 **DO:**
 ```bash
 # Show output structure
-tree outputs/campaign_*/products/ -L 2
+tree brands/summer_co/outputs/summer_promo_2024/ -L 2
 
 # Or use ls
-ls -la outputs/campaign_*/products/*/
+ls -la brands/summer_co/outputs/summer_promo_2024/*/
 ```
 
-**OPEN:** One or two generated images
+**OPEN:** All generated images to show the variety
 
-**SAY:** "Multiple variants per product, each optimized for different platforms, all brand-compliant."
+**DO:**
+```bash
+# Open all generated images
+open brands/summer_co/outputs/summer_promo_2024/*/*/*.png
+```
+
+**SAY:** "Multiple variants per product, each optimized for different platforms, all brand-compliant. We generated 6 images total - 2 products with 3 aspect ratios each."
 
 **DO:**
 ```bash
 # Show reports
-cat outputs/campaign_*/reports/generation_report.json | head -20
+cat brands/summer_co/outputs/summer_promo_2024/reports/generation_report.json | head -20
 ```
 
 ---
@@ -158,19 +175,25 @@ git clone https://github.com/YOUR_USERNAME/workspace-campaign-automation.git
 cd workspace-campaign-automation
 python3 -m venv venv && source venv/bin/activate
 pip install -q -r requirements.txt
+pip install -e .  # Install package in editable mode so imports work
+# Create .env file with API key (if not already present)
+echo 'OPENAI_API_KEY=sk-your-key-here' > .env  # Replace with your actual key
 
 # 2. Structure (30s)
-ls brand/
-tree inputs/ -L 2
-cat inputs/briefs/example_campaign.yaml | head -25
+ls brands/
+tree brands/summer_co/inputs/ -L 2
+cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml | head -25
 
 # 3. Run Campaign (60s)
-python src/pipeline.py --brief inputs/briefs/example_campaign.yaml
+# Make sure venv is activated (from step 1)
+# Make sure .env file exists with OPENAI_API_KEY
+python src/pipeline.py --brief brands/summer_co/inputs/briefs/summer_promo_2024.yaml
 
 # 4. Results (30s)
-tree outputs/ -L 3
-open outputs/campaign_*/products/product_1/1x1/*.png
-cat outputs/campaign_*/reports/generation_report.json | head -20
+tree brands/summer_co/outputs/summer_promo_2024/ -L 3
+# Open all generated images (6 total: 2 products × 3 aspect ratios)
+open brands/summer_co/outputs/summer_promo_2024/*/*/*.png
+cat brands/summer_co/outputs/summer_promo_2024/reports/generation_report.json | head -20
 
 # 5. Testing (25s)
 pytest tests/ -v --cov=src --cov-report=html
