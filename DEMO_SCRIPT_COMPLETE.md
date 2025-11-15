@@ -2,11 +2,12 @@
 
 ## Pre-Demo Setup (Do this before recording)
 1. **Upgrade pip on your system:** `pip install --upgrade pip` or `python3 -m pip install --upgrade pip`
-2. Make sure project is pushed to GitHub
+2. Make sure project is pushed to GitHub: `https://github.com/sbecker11/campaign-automation`
 3. Have terminal ready
 4. Clear your demo directory: `rm -rf ~/demo-workspace`
-5. Practice the git clone URL
-6. **Set up .env file:** Create `.env` file with `OPENAI_API_KEY=sk-your-key-here` (needed for image generation)
+5. Practice the git clone URL: `https://github.com/sbecker11/campaign-automation.git`
+6. **Set up .env file:** Create `.env` file with OPENAI_API_KEY=sk-* (needed for image generation)
+7. **Note:** Local workspace is at `~/workspace-campaign-automation/campaign-automation`
 
 ---
 
@@ -18,12 +19,12 @@
 
 **DO:**
 ```bash
-# Create parent directory
+# Create demo directory (for demo purposes)
 mkdir -p ~/demo-workspace;
 
 cd ~/demo-workspace;
 
-# Clone from GitHub (use your actual repo URL)
+# Clone from GitHub (repo name: campaign-automation)
 git clone https://github.com/sbecker11/campaign-automation.git;
 
 cd campaign-automation
@@ -52,12 +53,11 @@ pip install -r requirements.txt;
 pip install -e .;
 ```
 
-**SAY:** "Quick setup - installing dependencies and setting up the package..."
 
 **NOTE:** Add my `OPENAI_API_KEY` to the local .env file before running the pipeline:
 ```bash
-grep OPENAI_API_KEY ~/workspace-campaign-automation/.env
-cp  ~/workspace-campaign-automation/.env .
+grep OPENAI_API_KEY ~/workspace-campaign-automation/campaign-automation/.env
+cp  ~/workspace-campaign-automation/campaign-automation/.env .
 ```
 
 ---
@@ -68,20 +68,12 @@ cp  ~/workspace-campaign-automation/.env .
 
 **DO:**
 ```bash
-# Show brand directories
-ls brands/
-tree brands/ -L 1
 
-# Show campaign inputs
-tree brands/summer_co/inputs/ -L 2
-```
+# Show each campaign is defined as an input yaml file
+tree inputs/ -L 2
 
-**SAY:** "Each brand has its logo and assets. Campaign briefs are YAML configs - here's one..."
-
-**DO:**
-```bash
-# Show brief
-cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml | head -25
+# Here's an example campaign yaml file
+cat inputs/campaigns/example_campaign.yaml
 ```
 
 **POINT OUT:**
@@ -98,12 +90,12 @@ cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml | head -25
 
 **DO:**
 ```bash
-# Run the pipeline (venv should be activated from setup)
-python src/pipeline.py --brief brands/summer_co/inputs/briefs/summer_promo_2024.yaml
+# Run the campaign pipeline
+./run_campaign.sh
 ```
 
 **SAY WHILE RUNNING:**
-- "Step 1: Parsing campaign brief..."
+- "Step 1: Parsing campaign yaml file..."
 - "Step 2: Generating images with DALL-E..."
 - "Creating variants for 1:1 Instagram, 9:16 Stories..."
 - "Step 3: Validating brand compliance - checking colors, prohibited words..."
@@ -113,31 +105,20 @@ python src/pipeline.py --brief brands/summer_co/inputs/briefs/summer_promo_2024.
 
 ### Part 4: Results (30 seconds)
 
-**SAY:** "Here's what we generated..."
+**SAY:** "Here's what we generated...
+
+Multiple variants for each product, each optimized for different platforms, all brand-compliant. We generated 6 images total - 2 products with 3 aspect ratios each."
 
 **DO:**
 ```bash
-# Show output structure
-tree brands/summer_co/outputs/summer_promo_2024/ -L 2
-
-# Or use ls
-ls -la brands/summer_co/outputs/summer_promo_2024/*/
+# Show the generated campaign product images with variants
+./view_campaign.sh
 ```
-
-**OPEN:** All generated images to show the variety
-
-**DO:**
-```bash
-# Open all generated images
-open brands/summer_co/outputs/summer_promo_2024/*/*/*.png
-```
-
-**SAY:** "Multiple variants per product, each optimized for different platforms, all brand-compliant. We generated 6 images total - 2 products with 3 aspect ratios each."
 
 **DO:**
 ```bash
 # Show reports
-cat brands/summer_co/outputs/summer_promo_2024/reports/generation_report.json | head -20
+cat outputs/campaigns/summer_2024/reports/generation_report.json | head -20
 ```
 
 ---
@@ -177,29 +158,29 @@ pytest tests/ -v --cov=src --cov-report=html
 ```bash
 # 1. Setup (45s)
 mkdir -p ~/demo-workspace && cd ~/demo-workspace
-git clone https://github.com/YOUR_USERNAME/workspace-campaign-automation.git
-cd workspace-campaign-automation
+git clone https://github.com/sbecker11/campaign-automation.git
+cd campaign-automation
 python3 -m venv venv && source venv/bin/activate
-pip install -q -r requirements.txt
+pip install --upgrade pip
+pip install -r requirements.txt
 pip install -e .  # Install package in editable mode so imports work
-# Create .env file with API key (if not already present)
-echo 'OPENAI_API_KEY=sk-your-key-here' > .env  # Replace with your actual key
+# Copy .env file from workspace (if available)
+cp ~/workspace-campaign-automation/campaign-automation/.env . 2>/dev/null || echo 'OPENAI_API_KEY=sk-your-key-here' > .env
 
 # 2. Structure (30s)
-ls brands/
-tree brands/summer_co/inputs/ -L 2
-cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml | head -25
+tree inputs/ -L 2
+cat inputs/campaigns/example_campaign.yaml
 
 # 3. Run Campaign (60s)
 # Make sure venv is activated (from step 1)
 # Make sure .env file exists with OPENAI_API_KEY
-python src/pipeline.py --brief brands/summer_co/inputs/briefs/summer_promo_2024.yaml
+./run_campaign.sh
 
 # 4. Results (30s)
-tree brands/summer_co/outputs/summer_promo_2024/ -L 3
-# Open all generated images (6 total: 2 products × 3 aspect ratios)
-open brands/summer_co/outputs/summer_promo_2024/*/*/*.png
-cat brands/summer_co/outputs/summer_promo_2024/reports/generation_report.json | head -20
+tree outputs/campaigns/summer_2024/ -L 3
+# View campaign outputs
+./view_campaign.sh
+cat outputs/campaigns/summer_2024/reports/generation_report.json | head -20
 
 # 5. Testing (25s)
 pytest tests/ -v --cov=src --cov-report=html
@@ -224,11 +205,12 @@ open htmlcov/index.html
 ## Practice Tips
 
 1. **Pre-record a backup:** Have outputs ready in case live demo fails
-2. **Test your git clone URL** beforehand
+2. **Test your git clone URL** beforehand: `https://github.com/sbecker11/campaign-automation.git`
 3. **Upgrade pip before demo** - already done in pre-demo setup
 4. **Speed up install:** Use `pip install -q` for quiet mode
 5. **Know your cuts:** If over time, skip the detailed tree commands
 6. **Terminal font:** Make sure it's readable on recording
+7. **Note:** Demo uses `~/demo-workspace/campaign-automation`, but actual workspace is `~/workspace-campaign-automation/campaign-automation`
 
 ---
 

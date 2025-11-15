@@ -1,4 +1,4 @@
-# Creative Automation Pipeline
+# Campaign Automation Pipeline
 
 AI-powered campaign asset generation for social ad campaigns using DALL-E 3, computer vision, and brand compliance validation.
 
@@ -10,41 +10,56 @@ AI-powered campaign asset generation for social ad campaigns using DALL-E 3, com
 
 ### 1. Clone and Navigate
 ```bash
-cd ~
-mkdir workspace-campaign-automation
-cd workspace-campaign-automation
-git clone git@github.com:sbecker11/campaign-automation.git
+# Create workspace directory
+mkdir -p ~/workspace-campaign-automation && cd ~/workspace-campaign-automation
+
+# Clone the repository
+git clone https://github.com/sbecker11/campaign-automation.git
+
+# Navigate into the project
 cd campaign-automation
 ```
 
+**Note:** The project root is `~/workspace-campaign-automation/campaign-automation`
+
 ### 2. Create the Virtual Environment
 ```bash
-# Create and activeate the virtual environment 
+# Create the virtual environment
 python3 -m venv venv
+
+# Activate the virtual environment
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Upgrade pip and nstall requirements into the active virtual environment
-python -m pip install --upgrade pip
+# Upgrade the pip installer
+pip install --upgrade pip
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Install package in editable mode (so imports work)
+pip install -e .
 ```
 
 ### 3. Configure API Key
 ```bash
-# Create environment file
-cp .env.example .env
+# Copy .env file from your workspace (if you have one)
+# Or create a new one:
+echo 'OPENAI_API_KEY=sk-your-key-here' > .env
 
-# Edit and add your OpenAI API key
-nano .env
-# Add: OPENAI_API_KEY=sk-proj-your-key-here
+# Or if you have an existing .env file:
+cp ~/workspace-campaign-automation/campaign-automation/.env .  # Adjust path as needed
 ```
 
 ### 4. Verify Setup
 ```bash
 # Check project structure
-tree brands -L 3 -I 'outputs'
+tree inputs/ -L 2
 
 # List available campaigns
-ls brands/summer_co/inputs/briefs/
+ls inputs/campaigns/
+
+# View example campaign
+cat inputs/campaigns/example_campaign.yaml
 ```
 
 ---
@@ -61,7 +76,7 @@ pytest --cov=src --cov-report=html tests/
 open htmlcov/index.html
 
 # Run specific test file
-pytest tests/test_brief_parser.py -v
+pytest tests/test_campaign_parser.py -v
 
 # Run with detailed output
 pytest tests/ -v --tb=short
@@ -69,37 +84,35 @@ pytest tests/ -v --tb=short
 
 ---
 
-## Campaign 1: Summer Promotion (AI-Generated)
+## Running a Campaign
 
-This campaign demonstrates **AI image generation** using DALL-E 3.
+### Quick Start
+```bash
+# Run the default campaign (example_campaign.yaml)
+./run_campaign.sh
+
+# Run a specific campaign
+./run_campaign.sh inputs/campaigns/my_campaign.yaml
+```
 
 ### Review Inputs
 ```bash
-# View campaign brief
-cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml
+# View example campaign configuration
+cat inputs/campaigns/example_campaign.yaml
 
 # Check brand logo
-open brands/summer_co/brand_logo.png
+open assets/logo.png
 
 # View project structure
-tree brands/summer_co/inputs
+tree inputs/ -L 2
 ```
 
-**Brief highlights:**
+**Example campaign highlights:**
 - 2 products: Sunscreen + Beach Towel
 - AI generates product images from descriptions
 - 3 formats: 1:1, 9:16, 16:9
 - Brand colors: #FF6B35, #004E89, #FFFFFF
 - Message: "Your summer adventure starts here"
-
-### Run Campaign
-```bash
-# Run the campaign
-./run_campaign.sh --brief inputs/briefs/summer_promo_2024.yaml
-
-# Run with verbose logging
-./run_campaign.sh --brief inputs/briefs/summer_promo_2024.yaml --verbose
-```
 
 **Expected runtime:** ~50 seconds (2 products × ~20 sec DALL-E generation each)
 
@@ -107,24 +120,26 @@ tree brands/summer_co/inputs
 
 ### Review Outputs
 ```bash
-# View output structure
-tree brands/summer_co/outputs/summer_promo_2024 -L 3
+# View campaign outputs using the helper script
+./view_campaign.sh
+
+# Or view a specific campaign
+./view_campaign.sh summer_2024
+
+# View output structure manually
+tree outputs/campaigns/summer_2024 -L 3
 
 # Open all generated images
-open brands/summer_co/outputs/summer_promo_2024/
-
-# View all formats for each product in the campaign
-open brands/summer_co/outputs/summer_promo_2024/sunscreen_spf50/*/*.png
-open brands/summer_co/outputs/summer_promo_2024/beach_towel/*/*.png
+open outputs/campaigns/summer_2024/products/*/*/*.png
 
 # View generation report
-cat brands/summer_co/outputs/summer_promo_2024/reports/generation_report.json | python -m json.tool
+cat outputs/campaigns/summer_2024/reports/generation_report.json | python -m json.tool
 
 # View compliance report
-cat brands/summer_co/outputs/summer_promo_2024/reports/compliance_report.json | python -m json.tool
+cat outputs/campaigns/summer_2024/reports/compliance_report.json | python -m json.tool
 
 # Count generated files
-find brands/summer_co/outputs/summer_promo_2024 -name "*.png" | wc -l
+find outputs/campaigns/summer_2024 -name "*.png" | wc -l
 # Expected: 6 images (2 products × 3 formats)
 ```
 
@@ -137,147 +152,80 @@ find brands/summer_co/outputs/summer_promo_2024 -name "*.png" | wc -l
 
 ---
 
-## Campaign 2: Sunglasses Promotion (Pre-existing Asset)
-
-This campaign demonstrates using **pre-existing product photos** instead of AI generation.
-
-### Review Inputs
-```bash
-# Download sample product image
-./src/download_sunglasses.sh
-
-# View the pre-existing asset
-open brands/summer_co/inputs/assets/sunglasses/product.jpg
-
-# View campaign brief
-cat brands/summer_co/inputs/briefs/sunglasses_campaign.yaml
-
-# Check asset directory structure
-tree brands/summer_co/inputs/assets
-```
-
-**Brief highlights:**
-- 1 product: Aviator Sunglasses
-- Uses pre-existing product photo (no AI generation)
-- 3 formats: 1:1, 9:16, 16:9
-- Message: "See your adventure clearly"
-
-### Run Campaign
-```bash
-# Run the campaign
-./run_campaign.sh --brief inputs/briefs/sunglasses_campaign.yaml
-
-# Run with verbose logging
-./run_campaign.sh --brief inputs/briefs/sunglasses_campaign.yaml --verbose
-```
-
-**Expected runtime:** ~5 seconds (no AI generation, just image processing)
-
-**Expected cost:** $0.00 (uses existing asset)
-
-### Review Outputs
-```bash
-# View output structure
-tree brands/summer_co/outputs/sunglasses_promo_2024 -L 3
-
-# Open all generated images
-open brands/summer_co/outputs/sunglasses_promo_2024/aviator_sunglasses/
-
-# Compare: Original vs Processed
-open brands/summer_co/inputs/assets/sunglasses/product.jpg
-open brands/summer_co/outputs/sunglasses_promo_2024/aviator_sunglasses/1x1/
-
-# View reports
-cat brands/summer_co/outputs/sunglasses_promo_2024/reports/generation_report.json | python -m json.tool
-
-# Count generated files
-find brands/summer_co/outputs/sunglasses_promo_2024 -name "*.png" | wc -l
-# Expected: 3 images (1 product × 3 formats)
-```
-
-**What to look for in outputs:**
-- ✅ Pre-existing sunglasses photo (resized to each format)
-- ✅ Brand logo in top-right corner
-- ✅ Text overlay: "See your adventure clearly"
-- ✅ Same professional quality as AI-generated campaigns
-
----
-
 ## View All Outputs
 
 ### Helper Script
 ```bash
-# View all campaigns for a brand
-./view_outputs.sh brands/summer_co
+# View default campaign outputs
+./view_campaign.sh
 
-# View specific campaign details
-./view_outputs.sh brands/summer_co summer_promo_2024
-./view_outputs.sh brands/summer_co sunglasses_promo_2024
+# View specific campaign
+./view_campaign.sh summer_2024
 ```
+
+The `view_campaign.sh` script provides an interactive menu to:
+- Preview all images at once
+- Open in file browser
+- List all image files
+- Show generation report
+- Show compliance report
 
 ### Quick Commands
 ```bash
 # List all generated images
-find brands/summer_co/outputs -name "*.png" -type f
+find outputs/campaigns -name "*.png" -type f
 
 # Count total images
-find brands/summer_co/outputs -name "*.png" | wc -l
-# Expected: 9 images (6 summer + 3 sunglasses)
+find outputs/campaigns -name "*.png" | wc -l
 
 # View by format
-find brands/summer_co/outputs -path "*/1x1/*.png"
-find brands/summer_co/outputs -path "*/9x16/*.png"
-find brands/summer_co/outputs -path "*/16x9/*.png"
+find outputs/campaigns -path "*/1x1/*.png"
+find outputs/campaigns -path "*/9x16/*.png"
+find outputs/campaigns -path "*/16x9/*.png"
 
 # View all reports
-find brands/summer_co/outputs -name "*.json"
+find outputs/campaigns -name "*.json"
 
 # Check file sizes
-du -sh brands/summer_co/outputs/*/
+du -sh outputs/campaigns/*/
 ```
 
 ---
 
 ## Project Structure
 ```
-workspace-campaign-automation/
-├── brands/
-│   └── summer_co/                      # Brand directory
-│       ├── brand_logo.png              # Brand logo (auto-generated if missing)
-│       ├── inputs/
-│       │   ├── assets/                 # Pre-existing product images
-│       │   │   └── sunglasses/
-│       │   │       └── product.jpg
-│       │   └── briefs/                 # Campaign briefs (YAML)
-│       │       ├── summer_promo_2024.yaml
-│       │       └── sunglasses_campaign.yaml
-│       └── outputs/                    # Generated campaigns
-│           ├── summer_promo_2024/
+campaign-automation/
+├── inputs/
+│   └── campaigns/                      # Campaign YAML files
+│       └── example_campaign.yaml       # Example campaign configuration
+├── outputs/
+│   └── campaigns/                      # Generated campaign outputs
+│       └── summer_2024/
+│           ├── products/               # Product images by aspect ratio
 │           │   ├── sunscreen_spf50/
 │           │   │   ├── 1x1/
 │           │   │   ├── 9x16/
 │           │   │   └── 16x9/
-│           │   ├── beach_towel/
-│           │   └── reports/
-│           └── sunglasses_promo_2024/
-│               ├── aviator_sunglasses/
-│               └── reports/
+│           │   └── beach_towel/
+│           └── reports/                # Generation and compliance reports
+├── assets/
+│   └── logo.png                        # Brand logo (auto-generated if missing)
 ├── src/                                # Source code
 │   ├── pipeline.py                     # Main orchestrator
+│   ├── campaign_parser.py              # YAML parsing
 │   ├── image_generator.py              # DALL-E 3 integration
 │   ├── asset_processor.py              # Image processing
 │   ├── brand_validator.py              # CV-based validation
 │   ├── content_checker.py              # Content compliance
-│   ├── brief_parser.py                 # YAML parsing
 │   ├── report_generator.py             # JSON reports
-│   ├── utils.py                        # Utilities
-│   └── download_sunglasses.sh          # Sample asset downloader
+│   └── utils.py                        # Utilities
 ├── tests/                              # Unit tests
 ├── temp/                               # Temporary files
 ├── run_campaign.sh                     # Main runner script
-├── view_outputs.sh                     # Output viewer script
+├── view_campaign.sh                    # Output viewer script
 ├── requirements.txt                    # Python dependencies
-├── .env.example                        # Environment template
+├── setup.py                            # Package setup
+├── .env                                # Environment variables (create this)
 └── README.md                           # This file
 ```
 
@@ -322,14 +270,14 @@ workspace-campaign-automation/
 - Compliance report (validation results)
 - JSON format for easy integration
 
-### 🏢 Multi-Brand Support
-- Brand-centric folder structure
-- Each brand has own logo, assets, outputs
-- Scales to hundreds of brands
+### 🎯 Campaign Management
+- Simple YAML-based configuration
+- Centralized asset management
+- Easy to add new campaigns
 
 ---
 
-## Campaign Brief Format
+## Campaign Configuration Format
 
 ### Basic Structure
 ```yaml
@@ -341,9 +289,10 @@ products:
     name: "Product Display Name"
     description: "Product description"
     # Choose one:
-    generate_new_assets: true              # AI-generate image
+    generate_new: true                    # AI-generate image (default)
     # OR
-    use_existing_assets: "assets/path/"    # Use existing photo
+    generate_new: false
+    existing_assets: "path/to/assets/"    # Use existing photo
 
 target_market: "US"
 target_audience: "demographic_description"
@@ -353,23 +302,29 @@ brand_guidelines:
   brand_colors:
     - "#HEX_COLOR_1"
     - "#HEX_COLOR_2"
-  logo_required: true
+  logo_required: false                    # Logo is optional
 
 aspect_ratios:
   - "1:1"
   - "9:16"
   - "16:9"
+
+content_safety:
+  prohibited_words:
+    - "guaranteed"
+    - "miracle"
+  require_disclaimer: false
 ```
 
 ### Product Configuration Options
 
-**Option 1: Generate with AI**
+**Option 1: Generate with AI (default)**
 ```yaml
 products:
   - product_id: "new_product"
     name: "Product Name"
     description: "Detailed description for AI generation"
-    generate_new_assets: true
+    generate_new: true
 ```
 
 **Option 2: Use existing photo**
@@ -378,32 +333,27 @@ products:
   - product_id: "existing_product"
     name: "Product Name"
     description: "Product description"
-    use_existing_assets: "assets/product_folder/"
+    generate_new: false
+    existing_assets: "path/to/image/directory/"
 ```
 
 **Option 3: Mix both approaches**
 ```yaml
 products:
   - product_id: "new_product"
-    generate_new_assets: true
+    generate_new: true
   
   - product_id: "existing_product"
-    use_existing_assets: "assets/existing/"
+    generate_new: false
+    existing_assets: "assets/existing/"
 ```
 
 ---
 
-## Adding a New Brand
+## Creating a New Campaign
 ```bash
-# 1. Create brand structure
-mkdir -p brands/my_brand/{inputs/{briefs,assets},outputs}
-
-# 2. Add brand logo (200x200px PNG recommended)
-cp your_logo.png brands/my_brand/brand_logo.png
-# Or let pipeline auto-generate a default logo
-
-# 3. Create campaign brief
-cat > brands/my_brand/inputs/briefs/my_campaign.yaml << 'YAML'
+# 1. Create campaign YAML file
+cat > inputs/campaigns/my_campaign.yaml << 'YAML'
 campaign_id: "my_campaign_2024"
 campaign_name: "My Campaign"
 
@@ -411,7 +361,7 @@ products:
   - product_id: "product_1"
     name: "Product Name"
     description: "Product description"
-    generate_new_assets: true
+    generate_new: true
 
 target_market: "US"
 target_audience: "target_demographic"
@@ -420,15 +370,26 @@ campaign_message: "Your message here"
 brand_guidelines:
   brand_colors:
     - "#FF6B35"
-  logo_required: true
+  logo_required: false
 
 aspect_ratios:
   - "1:1"
   - "9:16"
+  - "16:9"
+
+content_safety:
+  prohibited_words: []
+  require_disclaimer: false
 YAML
 
-# 4. Run campaign
-./run_campaign.sh --brand brands/my_brand/ --brief inputs/briefs/my_campaign.yaml
+# 2. (Optional) Add custom logo
+cp your_logo.png assets/logo.png
+
+# 3. Run campaign
+./run_campaign.sh inputs/campaigns/my_campaign.yaml
+
+# 4. View outputs
+./view_campaign.sh my_campaign_2024
 ```
 
 ---
@@ -439,20 +400,20 @@ YAML
 - **OpenAI DALL-E 3** - AI image generation
 - **Pillow (PIL)** - Image processing & manipulation
 - **OpenCV** - Computer vision (logo detection, color analysis)
-- **Click** - CLI interface
 - **PyYAML** - Configuration parsing
 - **pytest** - Testing framework
+- **argparse** - Command-line interface
 
 ---
 
 ## Cost & Performance
 
-### Summer Promotion Campaign (AI-Generated)
+### Example Campaign (AI-Generated)
 - **Time:** ~50 seconds
 - **Cost:** ~$0.08 (2 products × $0.04)
 - **Output:** 6 images (2 products × 3 formats)
 
-### Sunglasses Campaign (Existing Asset)
+### Using Existing Assets
 - **Time:** ~5 seconds
 - **Cost:** $0.00
 - **Output:** 3 images (1 product × 3 formats)
@@ -466,14 +427,14 @@ YAML
 
 ## Design Decisions
 
-1. **Brand-centric folder structure** - Scales to hundreds of brands independently
+1. **Simple campaign structure** - Easy to organize and scale
 2. **Computer vision validation** - No ML training required, deterministic results
 3. **Smart logo backgrounds** - Automatic contrast detection via color similarity
 4. **Multi-line text wrapping** - Handles long messages across all formats
 5. **Cached validation** - Logo validated once per pipeline run for efficiency
 6. **Modular architecture** - Each component independently testable
-7. **Convention over configuration** - Logo path auto-resolved from brand folder
-8. **Backward compatibility** - Supports both old and new field names in briefs
+7. **Convention over configuration** - Logo path auto-resolved from assets folder
+8. **Flexible asset sources** - Support for both AI-generated and existing images
 
 ---
 
@@ -482,17 +443,19 @@ YAML
 ### "Logo file not found"
 ```bash
 # Check if logo exists
-ls -lh brands/summer_co/brand_logo.png
+ls -lh assets/logo.png
 
-# Let pipeline auto-create default logo
-./run_campaign.sh --brief inputs/briefs/summer_promo_2024.yaml
+# Pipeline will auto-create default logo if missing
+./run_campaign.sh
 ```
 
 ### "OPENAI_API_KEY not set"
 ```bash
-# Edit .env file
-nano .env
-# Add: OPENAI_API_KEY=sk-proj-your-key-here
+# Create or edit .env file
+echo 'OPENAI_API_KEY=sk-your-key-here' > .env
+
+# Or copy from existing location
+cp ~/workspace-campaign-automation/campaign-automation/.env .
 
 # Verify it's set
 source .env
@@ -501,33 +464,32 @@ echo $OPENAI_API_KEY
 
 ### "Module not found"
 ```bash
-# Reinstall dependencies
-pip install -r requirements.txt
-
-# Or in virtual environment
+# Make sure venv is activated
 source venv/bin/activate
+
+# Reinstall package in editable mode
+pip install -e .
+
+# Or reinstall dependencies
 pip install -r requirements.txt
 ```
 
 ### "Asset path not found"
 ```bash
 # Check asset exists
-ls -lh brands/summer_co/inputs/assets/sunglasses/
+ls -lh path/to/your/assets/
 
-# Download sample asset
-./src/download_sunglasses.sh
-
-# Or add your own
-cp your_image.jpg brands/summer_co/inputs/assets/sunglasses/product.jpg
+# Make sure the path in your campaign YAML is correct
+cat inputs/campaigns/your_campaign.yaml
 ```
 
 ### Campaign fails with no images
 ```bash
-# Run with verbose logging to see details
-./run_campaign.sh --brief inputs/briefs/campaign.yaml --verbose
-
 # Check generation report for errors
-cat brands/summer_co/outputs/campaign_id/reports/generation_report.json | python -m json.tool
+cat outputs/campaigns/campaign_id/reports/generation_report.json | python -m json.tool
+
+# Verify .env file has valid API key
+grep OPENAI_API_KEY .env
 ```
 
 ---
@@ -535,31 +497,34 @@ cat brands/summer_co/outputs/campaign_id/reports/generation_report.json | python
 ## Quick Reference Commands
 ```bash
 # List all campaigns
-ls brands/summer_co/inputs/briefs/
+ls inputs/campaigns/
 
 # Run default campaign
 ./run_campaign.sh
 
 # Run specific campaign
-./run_campaign.sh --brief inputs/briefs/sunglasses_campaign.yaml
+./run_campaign.sh inputs/campaigns/my_campaign.yaml
 
-# Run with verbose output
-./run_campaign.sh --brief inputs/briefs/summer_promo_2024.yaml --verbose
+# View campaign outputs
+./view_campaign.sh
 
-# View all outputs
-./view_outputs.sh brands/summer_co
+# View specific campaign
+./view_campaign.sh campaign_id
 
 # Count generated images
-find brands/summer_co/outputs -name "*.png" | wc -l
+find outputs/campaigns -name "*.png" | wc -l
 
 # Open campaign outputs
-open brands/summer_co/outputs/summer_promo_2024/
+open outputs/campaigns/summer_2024/
 
 # Run tests
 pytest tests/ -v
 
+# Run tests with coverage
+pytest tests/ -v --cov=src --cov-report=html
+
 # Clean outputs (start fresh)
-rm -rf brands/summer_co/outputs/*
+rm -rf outputs/campaigns/*
 ```
 
 ---
@@ -570,47 +535,39 @@ For a 2-3 minute demo video, follow this flow:
 
 1. **Show project structure** (20 sec)
 ```bash
-   tree brands -L 3 -I 'outputs'
+   tree inputs/ -L 2
 ```
 
-2. **Show Campaign 1 brief** (20 sec)
+2. **Show example campaign** (20 sec)
 ```bash
-   cat brands/summer_co/inputs/briefs/summer_promo_2024.yaml
+   cat inputs/campaigns/example_campaign.yaml
 ```
 
-3. **Run Campaign 1** (30 sec)
+3. **Run campaign** (30 sec)
 ```bash
-   ./run_campaign.sh --brief inputs/briefs/summer_promo_2024.yaml
+   ./run_campaign.sh
 ```
 
-4. **Show Campaign 1 outputs** (30 sec)
-   - Open generated images
-   - Show different formats side-by-side
-
-5. **Show Campaign 2 asset** (10 sec)
+4. **Show campaign outputs** (30 sec)
 ```bash
-   open brands/summer_co/inputs/assets/sunglasses/product.jpg
+   ./view_campaign.sh
+   # Use interactive menu to preview images
 ```
 
-6. **Run Campaign 2** (10 sec)
-```bash
-   ./run_campaign.sh --brief inputs/briefs/sunglasses_campaign.yaml
-```
-
-7. **Show Campaign 2 outputs** (20 sec)
-   - Compare original vs processed
-
-8. **Highlight features** (20 sec)
-   - Multi-brand support
-   - AI + existing assets
+5. **Highlight features** (20 sec)
+   - AI image generation
    - Brand compliance
    - Multiple formats
+   - Automated reporting
+
+See `DEMO_SCRIPT_COMPLETE.md` for the full detailed demo script.
 
 ---
 
 **Built by Shawn Becker for Fanatics Data Engineering Take-Home Exercise**
 
-**GitHub:** https://github.com/sbecker11
+**Repository:** https://github.com/sbecker11/campaign-automation  
+**GitHub:** https://github.com/sbecker11  
 **LinkedIn:** https://linkedin.com/in/shawnbecker
 
 ## Testing
@@ -650,7 +607,7 @@ pytest tests/
 - `brand_validator.py`: 95%
 - `content_checker.py`: 88%
 - `image_generator.py`: 88%
-- `brief_parser.py`: 83%
+- `campaign_parser.py`: 83%
 - `report_generator.py`: 82%
 - `utils.py`: 100%
 - `pipeline.py`: 64%

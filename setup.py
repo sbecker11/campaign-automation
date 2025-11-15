@@ -3,6 +3,10 @@ from setuptools import setup, find_packages
 setup(
     name="campaign-automation",
     version="0.1.0",
+    description="AI-powered campaign asset generation for social ad campaigns",
+    long_description="Campaign Automation Pipeline - Generate social media ad variants using DALL-E 3, computer vision, and brand compliance validation.",
+    author="Shawn Becker",
+    url="https://github.com/sbecker11/campaign-automation",
     packages=find_packages(),
     install_requires=[
         'click>=8.1.7',
