@@ -36,12 +36,17 @@ ls -la
 
 **DO:**
 ```bash
-# Create virtual environment
+# Create the virtual environment
 python3 -m venv venv;
+
+# Activate the virtual environment
 source venv/bin/activate;
 
+# Upgrade the pip installer
+pip install --upgrade pip
+
 # Install dependencies
-pip install -q -r requirements.txt;
+pip install -r requirements.txt;
 
 # Install package in editable mode (so imports work)
 pip install -e .;
