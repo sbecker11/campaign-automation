@@ -11,6 +11,7 @@ def ensure_dir(path: Path) -> Path:
     return path
 
 
+
 def clean_temp_files(temp_dir: Path = Path("temp")):
     """Clean up temporary files."""
     if temp_dir.exists():
