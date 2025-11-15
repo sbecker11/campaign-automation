@@ -1,0 +1,34 @@
+campaign_id: "summer_2024"
+campaign_name: "Summer Adventure Collection"
+
+products:
+  - product_id: "sunscreen_spf50"
+    name: "SunGuard SPF 50+"
+    description: "Waterproof sunscreen for outdoor adventures"
+    generate_new: true
+  - product_id: "beach_towel"
+    name: "Quick-Dry Beach Towel"
+    description: "Ultra-absorbent microfiber beach towel"
+    generate_new: true
+
+target_market: "US_California"
+target_audience: "outdoor_enthusiasts_25-45"
+campaign_message: "Your summer adventure starts here"
+
+brand_guidelines:
+  brand_colors:
+    - "#FF6B35"
+    - "#004E89"
+    - "#FFFFFF"
+  logo_required: false
+
+aspect_ratios:
+  - "1:1"
+  - "9:16"
+  - "16:9"
+
+content_safety:
+  prohibited_words:
+    - "guaranteed"
+    - "miracle"
+  require_disclaimer: false

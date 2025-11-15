@@ -1,26 +1,23 @@
 """
-Pytest configuration and shared fixtures for campaign automation tests.
+Shared test fixtures.
 """
 
 import pytest
 from pathlib import Path
 import tempfile
-import shutil
 from PIL import Image
-import yaml
 
 
 @pytest.fixture
 def temp_dir():
-    """Create a temporary directory for test files."""
-    temp_path = tempfile.mkdtemp()
-    yield Path(temp_path)
-    shutil.rmtree(temp_path)
+    """Create a temporary directory for test outputs."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield Path(tmpdir)
 
 
 @pytest.fixture
-def sample_brief_dict():
-    """Sample campaign brief dictionary."""
+def sample_campaign_dict():
+    """Sample campaign dictionary for testing."""
     return {
         'campaign_id': 'test_campaign_001',
         'campaign_name': 'Test Summer Campaign',
@@ -49,44 +46,51 @@ def sample_brief_dict():
 
 
 @pytest.fixture
-def sample_brief_yaml(temp_dir, sample_brief_dict):
-    """Create a temporary YAML campaign brief file."""
-    brief_path = temp_dir / "test_brief.yaml"
-    with open(brief_path, 'w') as f:
-        yaml.dump(sample_brief_dict, f)
-    return brief_path
-
-
-@pytest.fixture
-def sample_image():
-    """Create a sample test image."""
-    img = Image.new('RGB', (1024, 1024), color=(255, 100, 50))
-    return img
-
-
-@pytest.fixture
-def sample_image_file(temp_dir, sample_image):
-    """Create a sample test image file."""
-    img_path = temp_dir / "test_image.png"
-    sample_image.save(img_path)
-    return img_path
+def sample_campaign_yaml(temp_dir, sample_campaign_dict):
+    """Create a sample campaign YAML file."""
+    import yaml
+    
+    campaign_path = temp_dir / "test_campaign.yaml"
+    with open(campaign_path, 'w') as f:
+        yaml.dump(sample_campaign_dict, f)
+    
+    return campaign_path
 
 
 @pytest.fixture
 def brand_guidelines_dict():
-    """Sample brand guidelines dictionary."""
+    """Sample brand guidelines for testing."""
     return {
-        'brand_colors': [
-            {'hex': '#FF6B35', 'name': 'Primary Orange'},
-            {'hex': '#004E89', 'name': 'Primary Blue'},
-            {'hex': '#FFFFFF', 'name': 'White'}
-        ],
-        'prohibited_colors': ['#FF0000'],
-        'prohibited_words': ['guaranteed', 'miracle', 'cure'],
-        'required_disclaimers': [],
-        'logo_requirements': {
-            'min_size_percent': 5,
-            'max_size_percent': 20,
-            'allowed_positions': ['top-left', 'top-right', 'bottom-left', 'bottom-right']
-        }
+        'brand_colors': ['#FF6B35', '#004E89', '#FFFFFF'],
+        'logo_required': False,
+        'logo_path': None
     }
+
+
+@pytest.fixture
+def sample_image(temp_dir):
+    """Create a sample image for testing."""
+    img = Image.new('RGB', (500, 500), color='red')
+    return img
+
+
+@pytest.fixture
+def sample_image_file(temp_dir):
+    """Create a sample image file for testing."""
+    img = Image.new('RGB', (500, 500), color='blue')
+    img_path = temp_dir / "test_image.png"
+    img.save(img_path)
+    return img_path
+
+
+# Keep old fixtures for backward compatibility
+@pytest.fixture
+def sample_brief_dict(sample_campaign_dict):
+    """Deprecated: use sample_campaign_dict instead."""
+    return sample_campaign_dict
+
+
+@pytest.fixture
+def sample_brief_yaml(sample_campaign_yaml):
+    """Deprecated: use sample_campaign_yaml instead."""
+    return sample_campaign_yaml

@@ -5,24 +5,35 @@ __pycache__/
 *.so
 .Python
 venv/
-env/
-
-# Environment
-.env
-
-# Outputs and temp files
-brands/*/outputs/
-temp/
-*.log
-archive/
+ENV/
+.venv
 
 # IDE
 .vscode/
 .idea/
 *.swp
-.DS_Store
+*.swo
 
-# Distribution
-dist/
-build/
-*.egg-info/
+# Environment
+.env
+*.log
+
+# Outputs
+outputs/
+temp/
+*.png
+*.jpg
+*.jpeg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup
+backup_*.tar.gz
+refactor_*.sh

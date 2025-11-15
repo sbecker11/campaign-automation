@@ -12,14 +12,14 @@ from PIL import Image
 @pytest.fixture
 def mock_components():
     """Mock all pipeline components."""
-    with patch('src.pipeline.BriefParser') as mock_parser, \
+    with patch('src.pipeline.CampaignParser') as mock_parser, \
          patch('src.pipeline.ImageGenerator') as mock_img_gen, \
          patch('src.pipeline.AssetProcessor') as mock_processor, \
          patch('src.pipeline.BrandValidator') as mock_validator, \
          patch('src.pipeline.ContentChecker') as mock_checker, \
          patch('src.pipeline.ReportGenerator') as mock_reporter:
         
-        # Setup BriefParser mock
+        # Setup CampaignParser mock
         mock_parser_instance = MagicMock()
         mock_parser.return_value = mock_parser_instance
         

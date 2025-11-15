@@ -95,7 +95,7 @@ class AssetProcessor:
                 self.logger.warning(f"logo_required=True but no logo_path specified")
         
         ratio_dir = output_dir / aspect_ratio.replace(':', 'x')
-        ratio_dir.mkdir(exist_ok=True)
+        ratio_dir.mkdir(parents=True, exist_ok=True)
         
         output_path = ratio_dir / f"{product['product_id']}_{aspect_ratio.replace(':', 'x')}.png"
         image.save(output_path, quality=95, optimize=True)
