@@ -24,9 +24,9 @@ mkdir -p ~/demo-workspace;
 cd ~/demo-workspace;
 
 # Clone from GitHub (use your actual repo URL)
-git clone https://github.com/sbecker11/workspace-campaign-automation.git;
+git clone https://github.com/sbecker11/campaign-automation.git;
 
-cd workspace-campaign-automation
+cd campaign-automation
 
 # Quick look at structure
 ls -la
@@ -49,9 +49,10 @@ pip install -e .;
 
 **SAY:** "Quick setup - installing dependencies and setting up the package..."
 
-**NOTE:** Make sure you have a `.env` file with `OPENAI_API_KEY` set before running the pipeline. If not, create it:
+**NOTE:** Add my `OPENAI_API_KEY` to the local .env file before running the pipeline:
 ```bash
-cp ~/workspace-campaign-automation/.env . 
+grep OPENAI_API_KEY ~/workspace-campaign-automation/.env
+cp  ~/workspace-campaign-automation/.env .
 ```
 
 ---
