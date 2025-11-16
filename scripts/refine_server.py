@@ -47,7 +47,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
             status_path = os.path.join(PROJECT_ROOT, "outputs", "campaigns", campaign_id, "status.json")
             os.makedirs(os.path.dirname(status_path), exist_ok=True)
 
-            # Merge: update only deletes; preserve other fields if file exists
+            # Merge: update only visibility and comments; preserve other fields if file exists
             status = {}
             if os.path.exists(status_path):
                 try:
@@ -55,18 +55,28 @@ class RefineHandler(SimpleHTTPRequestHandler):
                         status = json.load(f) or {}
                 except Exception:
                     status = {}
-            status["deletes"] = deletes
-            # If images array provided, update deleted flags on matching paths; preserve warnings and other fields
+            # Legacy top-level 'deletes' array renamed to 'hidden'
+            status["hidden"] = deletes
+            # If images array provided, update hidden flags and comments on matching paths; preserve warnings and other fields
             if images is not None:
                 # Ensure images structure exists
                 existing = status.get("images")
                 if isinstance(existing, list):
-                    # Build map from path to deleted
-                    path_to_deleted = {img.get("path"): bool(img.get("deleted")) for img in images if isinstance(img, dict)}
+                    # Build map from path to payload (hidden/comment)
+                    by_path = {
+                        img.get("path"): {
+                            "hidden": bool(img.get("hidden")),
+                            "comment": img.get("comment") if isinstance(img.get("comment"), str) else None,
+                        }
+                        for img in images
+                        if isinstance(img, dict) and img.get("path")
+                    }
                     for img in existing:
                         p = img.get("path")
-                        if p in path_to_deleted:
-                            img["deleted"] = path_to_deleted[p]
+                        if p in by_path:
+                            img["hidden"] = by_path[p]["hidden"]
+                            if by_path[p]["comment"] is not None:
+                                img["comment"] = by_path[p]["comment"]
                 else:
                     status["images"] = images
 

@@ -129,12 +129,14 @@ class ReportGenerator:
                     'colors_missing': colors_missing,
                     'low_quality': low_quality,
                 }
-                deleted = any(warnings.values())
+                hidden = any(warnings.values())
                 images.append({
                     'path': path,
                     'ratio': ratio,
                     'warnings': warnings,
-                    'deleted': deleted,
+                    'hidden': hidden,
+                    # User-editable notes added later in refine UI
+                    'comment': "",
                 })
             except Exception:
                 continue
@@ -147,10 +149,10 @@ class ReportGenerator:
             'products': generation.get('products', []),
             # Include validations for convenience (optional)
             'validations': compliance.get('validations', []),
-            # Per-image status with warnings and deleted flag (file-based single source of truth)
+            # Per-image status with warnings and hidden flag (file-based single source of truth)
             'images': images,
-            # File-based refine state; UI will update this array
-            'deletes': []
+            # File-based refine state; UI will update this array (legacy 'deletes' renamed to 'hidden')
+            'hidden': []
         }
         return combined
     

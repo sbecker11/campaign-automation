@@ -23,6 +23,17 @@
     .imgwrap img { width: 100%; height: 100%; object-fit: contain; }
     .meta { padding: 8px; font-size: 12px; display:flex; flex-direction:column; gap:6px; }
     .meta-footer { margin-top: 6px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .comment-box {
+      width: 100%;
+      min-height: 44px;
+      resize: vertical;
+      padding: 4px 6px;
+      font-family: inherit;
+      font-size: 12px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
     .path { font-family: Menlo, Monaco, monospace; font-size: 11px; color: #333; word-break: break-all; }
     .btn { cursor:pointer; padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; background:#fff; }
     .btn.delete { border-color:#f00; color:#f00; }
@@ -101,6 +112,8 @@
                 <div>${prod ? ('product: ' + prod) : ''}</div>
                 <div>${asp ? ('aspect: ' + asp) : ''}</div>
                 <div class="path">${rel}</div>
+                <div style="font-size:11px; color:#555; margin-top:4px;">Comments:</div>
+                <textarea class="comment-box" maxlength="512" placeholder="Add notes about this image (max 512 chars)"></textarea>
                 <div class="meta-footer">
                   <div class="compliance"></div>
                   <div><button class="btn delete">🙈 Hide</button></div>
@@ -179,23 +192,28 @@
           const js = await res.json();
           const marked = new Set();
           const warnByPath = new Map();
+          const commentByPath = new Map();
           if (Array.isArray(js.images)) {
             js.images.forEach(i => {
               if (i && i.path) {
-                if (i.deleted) marked.add(i.path);
+                if (i.hidden) marked.add(i.path);
                 if (i.warnings) warnByPath.set(i.path, i.warnings);
+                if (typeof i.comment === 'string') commentByPath.set(i.path, i.comment);
               }
             });
           }
-          if (Array.isArray(js.images)) js.images.forEach(i => { if (i && i.deleted && i.path) marked.add(i.path); });
-          if (Array.isArray(js.deletes)) js.deletes.forEach(p => marked.add(p));
+          if (Array.isArray(js.hidden)) js.hidden.forEach(p => marked.add(p));
           cards.forEach(c => {
             const btn = c.querySelector('.btn.delete');
+            const commentEl = c.querySelector('.comment-box');
             if (marked.has(c.dataset.path)) {
               c.classList.add('marked');
               if (btn) btn.textContent = '👁 Show';
             } else if (btn) {
               btn.textContent = '🙈 Hide';
+            }
+            if (commentEl && commentByPath.has(c.dataset.path)) {
+              commentEl.value = commentByPath.get(c.dataset.path).slice(0, 512);
             }
             // Add compliance icons row (non-editable)
             const w = warnByPath.get(c.dataset.path);
@@ -221,14 +239,26 @@
     });
     document.getElementById('saveBtn').addEventListener('click', async () => {
       try {
-        const deletes = cards.filter(c => c.classList.contains('marked')).map(c => c.dataset.path);
+        const deletes = [];
+        const imagesPayload = [];
+        cards.forEach(c => {
+          const path = c.dataset.path;
+          const hidden = c.classList.contains('marked');
+          if (hidden) deletes.push(path);
+          const commentEl = c.querySelector('.comment-box');
+          let comment = '';
+          if (commentEl && typeof commentEl.value === 'string') {
+            comment = commentEl.value.slice(0, 512);
+          }
+          imagesPayload.push({ path, hidden, comment });
+        });
         const resp = await fetch('/api/save_status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             campaignId: campaign,
             deletes,
-            images: deletes.map(p => ({ path: p, deleted: true }))
+            images: imagesPayload
           })
         });
         if (resp.ok) alert('Saved visibility status.json');
