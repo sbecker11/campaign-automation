@@ -11,6 +11,8 @@ from typing import Dict
 import requests
 from openai import OpenAI
 from dotenv import load_dotenv
+from PIL import Image
+import numpy as np
 
 # Load environment variables from .env file
 load_dotenv()
@@ -73,6 +75,32 @@ class ImageGenerator:
             output_path = self.temp_dir / f"{product_id}_generated.png"
             output_path.write_bytes(image_data)
             
+            # Validate image - check for color bars and regenerate if found
+            max_retries = 3
+            retry_count = 0
+            while retry_count < max_retries:
+                if self._has_color_bars(output_path):
+                    self.logger.warning(f"Color bars detected in generated image (attempt {retry_count + 1}/{max_retries})")
+                    if retry_count < max_retries - 1:
+                        # Regenerate with stronger prompt
+                        self.logger.info("Regenerating image with enhanced prompt to avoid color bars...")
+                        response = self.client.images.generate(
+                            model="dall-e-3",
+                            prompt=self._build_prompt(product, brief, enhanced=True),
+                            n=1,
+                            quality="standard",
+                            size="1024x1024"
+                        )
+                        image_url = response.data[0].url
+                        image_data = requests.get(image_url).content
+                        output_path.write_bytes(image_data)
+                        retry_count += 1
+                    else:
+                        self.logger.error("Color bars still present after retries - using image anyway")
+                        break
+                else:
+                    break
+            
             self.logger.info(f"Image generated successfully: {output_path}")
             return output_path
             
@@ -80,7 +108,98 @@ class ImageGenerator:
             self.logger.error(f"Image generation failed: {str(e)}")
             raise
     
-    def _build_prompt(self, product: Dict, brief: Dict) -> str:
+    def _has_color_bars(self, image_path: Path) -> bool:
+        """
+        Detect color bars in generated images.
+        
+        Color bars typically appear as:
+        - Horizontal or vertical strips of solid colors
+        - Usually at edges (top, bottom, sides)
+        - High color uniformity in rectangular regions
+        
+        Returns True if color bars are detected.
+        """
+        try:
+            img = Image.open(image_path)
+            img_array = np.array(img.convert('RGB'))
+            height, width = img_array.shape[:2]
+            
+            # Check edges for color bars (top, bottom, left, right)
+            edge_thickness = min(50, height // 10, width // 10)  # Check 10% of image or 50px, whichever is smaller
+            
+            # Check top edge
+            top_region = img_array[:edge_thickness, :]
+            if self._is_color_bar_region(top_region):
+                self.logger.debug("Color bar detected at top edge")
+                return True
+            
+            # Check bottom edge
+            bottom_region = img_array[-edge_thickness:, :]
+            if self._is_color_bar_region(bottom_region):
+                self.logger.debug("Color bar detected at bottom edge")
+                return True
+            
+            # Check left edge
+            left_region = img_array[:, :edge_thickness]
+            if self._is_color_bar_region(left_region):
+                self.logger.debug("Color bar detected at left edge")
+                return True
+            
+            # Check right edge
+            right_region = img_array[:, -edge_thickness:]
+            if self._is_color_bar_region(right_region):
+                self.logger.debug("Color bar detected at right edge")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.warning(f"Error detecting color bars: {e}")
+            # If we can't detect, assume no color bars (better to use image than reject)
+            return False
+    
+    def _is_color_bar_region(self, region: np.ndarray) -> bool:
+        """
+        Check if a region is a color bar (high color uniformity).
+        
+        Color bars have:
+        - Low color variance (solid colors)
+        - Distinct color segments (multiple solid color blocks)
+        """
+        if region.size == 0:
+            return False
+        
+        # Reshape to 2D array of pixels
+        pixels = region.reshape(-1, 3)
+        
+        # Calculate color variance - color bars have low variance (solid colors)
+        color_variance = np.var(pixels, axis=0).mean()
+        
+        # Color bars typically have very low variance (< 100)
+        # But we also need to check for multiple distinct color segments
+        if color_variance < 100:
+            # Check for multiple distinct color segments (typical of color bars)
+            # Sample pixels at regular intervals
+            step = max(1, len(pixels) // 20)  # Sample ~20 pixels
+            sampled = pixels[::step]
+            
+            # Count distinct colors (colors that differ significantly)
+            distinct_colors = []
+            for pixel in sampled:
+                is_distinct = True
+                for existing in distinct_colors:
+                    # If colors are similar (within 30 RGB units), they're the same
+                    if np.linalg.norm(pixel - existing) < 30:
+                        is_distinct = False
+                        break
+                if is_distinct:
+                    distinct_colors.append(pixel)
+                    if len(distinct_colors) >= 3:  # Color bars typically have 3+ distinct colors
+                        return True
+        
+        return False
+    
+    def _build_prompt(self, product: Dict, brief: Dict, enhanced: bool = False) -> str:
         """Build DALL-E prompt from product and campaign brief."""
         prompt_parts = [
             f"Professional product photography of {product['name']}.",
@@ -109,12 +228,22 @@ class ImageGenerator:
             )
         
         # CRITICAL: Avoid color bars and overlays
-        prompt_parts.extend([
-            "Photography should be clean, professional, and suitable for a global consumer brand.",
-            "No text or watermarks in the image.",
-            "DO NOT include color swatches, color bars, or brand color strips in the image.",
-            "Natural product photography only - no graphic design elements or overlays."
-        ])
+        if enhanced:
+            prompt_parts.extend([
+                "Photography should be clean, professional, and suitable for a global consumer brand.",
+                "No text or watermarks in the image.",
+                "CRITICAL: DO NOT include any color swatches, color bars, color strips, or color palettes in the image.",
+                "CRITICAL: DO NOT add any colored rectangles, strips, or bars at the edges or anywhere in the image.",
+                "Natural product photography only - absolutely no graphic design elements, overlays, or color calibration bars.",
+                "The image must be pure product photography with no decorative elements, color samples, or design overlays.",
+            ])
+        else:
+            prompt_parts.extend([
+                "Photography should be clean, professional, and suitable for a global consumer brand.",
+                "No text or watermarks in the image.",
+                "DO NOT include color swatches, color bars, or brand color strips in the image.",
+                "Natural product photography only - no graphic design elements or overlays.",
+            ])
         
         return '\n'.join(prompt_parts)
 

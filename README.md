@@ -534,32 +534,45 @@ rm -rf outputs/campaigns/*
 
 For a 2-3 minute demo video, follow this flow:
 
-1. **Show project structure** (20 sec)
+### Part 1: Setup (45 seconds)
+- Clone repository
+- Create virtual environment
+- Install dependencies
+- Configure API key
+
+### Part 2: Project Structure (30 seconds)
 ```bash
-   tree inputs/ -L 2
+tree inputs/ -L 2
+cat inputs/campaigns/example_campaign.yaml
 ```
 
-2. **Show example campaign** (20 sec)
+### Part 3: Run Campaign (60 seconds)
 ```bash
-   cat inputs/campaigns/example_campaign.yaml
+./run_campaign.sh
+```
+**While running:**
+- "Step 1: Parsing campaign yaml file..."
+- "Step 2: Generating images with DALL-E..."
+- "Creating variants for 1:1 Instagram, 9:16 Stories..."
+- "Step 3: Validating brand compliance - checking colors, prohibited words..."
+- "Generating compliance reports..."
+
+### Part 4: Results (30 seconds)
+```bash
+./view_campaign.sh
+# Use interactive menu to preview images
+cat outputs/campaigns/summer_2024/reports/generation_report.json | head -20
 ```
 
-3. **Run campaign** (30 sec)
+### Part 5: Testing & Quality (25 seconds)
 ```bash
-   ./run_campaign.sh
+pytest tests/ -v --cov=src --cov-report=html
+open htmlcov/index.html
 ```
 
-4. **Show campaign outputs** (30 sec)
-```bash
-   ./view_campaign.sh
-   # Use interactive menu to preview images
-```
-
-5. **Highlight features** (20 sec)
-   - AI image generation
-   - Brand compliance
-   - Multiple formats
-   - Automated reporting
+### Part 6: Wrap Up (15 seconds)
+- Highlight key features
+- Summary of capabilities
 
 See `DEMO_SCRIPT_COMPLETE.md` for the full detailed demo script.
 
@@ -612,4 +625,35 @@ pytest tests/
 - `utils.py`: 100%
 - `pipeline.py`: 64%
 - `asset_processor.py`: 62%
+
+# Campaign Automation
+
+## Quick Start
+
+1) Generate latest (uses most recent YAML, timestamped):
+```
+./generate_campaign.sh
+```
+
+2) Generate for a specific existing output directory (reads YAML inside, writes status.json there):
+```
+./generate_campaign.sh --output-dir outputs/campaigns/<campaign_id_or_run>
+```
+
+- Refine latest campaign:
+```
+./refine_campaign.sh
+```
+- Refine with filters (campaign/product/aspect/status):
+```
+./refine_campaigns.sh
+```
+
+## Scripts
+- `generate_campaign.sh`                    # Main generator (two modes: default, --output-dir)
+- `refine_campaign.sh`                      # Open latest campaign for review
+- `refine_campaigns.sh`                     # Interactive refine tool with filters
+
+## Notes
+- `--timestamp current` appends `YYYYMMDD_HHMMSS` to the output campaign directory name to avoid overwrites.
 

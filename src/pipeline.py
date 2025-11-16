@@ -95,13 +95,14 @@ class CampaignPipeline:
         except Exception as e:
             self.logger.error(f"Failed to create default logo: {e}")
     
-    def run(self, campaign_path: Path, output_base_dir: Path = None):
+    def run(self, campaign_path: Path, output_base_dir: Path = None, use_timestamp: bool = False):
         """
         Run the complete campaign pipeline.
         
         Args:
             campaign_path: Path to campaign YAML file
             output_base_dir: Base output directory (defaults to outputs/campaigns/)
+            use_timestamp: If True, append timestamp to output directory name
         """
         self.logger.info("")
         self.logger.info("🚀 Starting Campaign Automation Pipeline")
@@ -109,7 +110,7 @@ class CampaignPipeline:
         self.logger.info("")
         
         # Parse campaign
-        self.logger.info("📋 Step 1: Parsing campaign configuration...")
+        self.logger.info("📋 Step 1: Parsing campaign yaml file...")
         campaign = self.parser.parse(campaign_path)
         
         # Set logo path in campaign if logo is required
@@ -127,21 +128,33 @@ class CampaignPipeline:
         if output_base_dir is None:
             output_base_dir = Path('outputs/campaigns')
         
-        campaign_output_dir = output_base_dir / campaign['campaign_id']
+        # Add timestamp to output directory if requested
+        campaign_id = campaign['campaign_id']
+        if use_timestamp:
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            campaign_id = f"{campaign_id}_{timestamp}"
+        
+        campaign_output_dir = output_base_dir / campaign_id
         campaign_output_dir.mkdir(parents=True, exist_ok=True)
         
         # Process products
         self.logger.info("")
-        self.logger.info(f"🎨 Step 2: Processing {len(campaign['products'])} product(s)...")
+        self.logger.info(f"🎨 Step 2: Generating images with DALL-E...")
         
         results = []
         for product in campaign['products']:
             result = self._process_product(product, campaign, campaign_output_dir)
             results.append(result)
         
+        # Validate brand compliance (validation happens during product processing)
+        # Log it as Step 3 after all products are processed
+        self.logger.info("")
+        self.logger.info("✅ Step 3: Validating brand compliance - checking colors, prohibited words...")
+        
         # Generate reports
         self.logger.info("")
-        self.logger.info("📊 Step 3: Generating reports...")
+        self.logger.info("📊 Generating compliance reports...")
         reports_dir = campaign_output_dir / "reports"
         self.report_generator.generate_reports(results, campaign, reports_dir)
         self.logger.info(f"  📄 Reports saved to {reports_dir}")
@@ -192,6 +205,12 @@ class CampaignPipeline:
             # Create variants for each aspect ratio
             product_output_dir = output_dir / "products" / product_id
             aspect_ratios = campaign.get('aspect_ratios', ['1:1'])
+            
+            # Log aspect ratio creation (only once per product)
+            if aspect_ratios:
+                aspect_ratio_str = ', '.join([f"{ar.replace(':', 'x')}" for ar in aspect_ratios])
+                self.logger.info(f"  Creating variants for {aspect_ratio_str}...")
+            
             variants = []
             validations = []
             
@@ -221,6 +240,7 @@ class CampaignPipeline:
                 })
             
             self.logger.info(f"✓ Processed {product_name}")
+            self.logger.info("─" * 60)
             
             return {
                 'product_id': product_id,
@@ -258,7 +278,17 @@ if __name__ == '__main__':
         help='Output directory'
     )
     
+    parser.add_argument(
+        '--timestamp',
+        action='store_true',
+        help='Append timestamp to output directory name (useful for multiple runs)'
+    )
+    
     args = parser.parse_args()
     
     pipeline = CampaignPipeline()
-    pipeline.run(args.campaign, args.output)
+    pipeline.run(
+        campaign_path=args.campaign,
+        output_base_dir=args.output,
+        use_timestamp=args.timestamp
+    )

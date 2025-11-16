@@ -27,6 +27,9 @@ class ReportGenerator:
             output_dir: Directory to save reports
         """
         try:
+            # Ensure output directory exists
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
             # Generate generation report
             generation_report = self._create_generation_report(results, brief)
             generation_path = output_dir / 'generation_report.json'
@@ -98,9 +101,9 @@ class ReportGenerator:
                     # Count checks (only if campaign_validation exists)
                     campaign_val = validation.get('campaign_validation', {})
                     if campaign_val:
+                        total_checks += 1
                         if campaign_val.get('overall_compliant', True):
                             passed_checks += 1
-                        total_checks += 1
         
         compliance_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 100.0
         

@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# View Campaign helper
+
+if [ ! -d "outputs/campaigns" ]; then
+    echo "No outputs found. Generate first:"
+    echo "  ./generate_campaign.sh --timestamp"
+    exit 1
+fi
+
 # View Campaign Outputs
 # 
 # Usage:

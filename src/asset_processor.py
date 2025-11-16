@@ -88,7 +88,9 @@ class AssetProcessor:
             if logo_path:
                 # Validate logo before attempting to add it
                 if self._validate_logo_file(logo_path):
+                    self.logger.info(f"Adding logo from {logo_path} to {aspect_ratio} variant")
                     image = self._add_logo(image, logo_path, aspect_ratio)
+                    self.logger.info(f"Logo added successfully to {aspect_ratio} variant")
                 else:
                     self.logger.warning(f"Skipping logo for {product['product_id']} - logo file invalid")
             else:
@@ -229,6 +231,54 @@ class AssetProcessor:
         
         return image
     
+    def _logo_has_text(self, logo: Image.Image) -> bool:
+        """
+        Detect if logo contains text by checking for high contrast edges.
+        
+        Text-heavy logos typically have many sharp edges and high contrast.
+        Returns True if logo appears to contain text.
+        """
+        try:
+            # Convert to grayscale for edge detection
+            if logo.mode != 'L':
+                gray = logo.convert('L')
+            else:
+                gray = logo
+            
+            # Resize to reasonable size for analysis (faster processing)
+            analysis_size = (200, 200)
+            if gray.size != analysis_size:
+                gray = gray.resize(analysis_size, Image.Resampling.LANCZOS)
+            
+            # Convert to numpy array
+            img_array = np.array(gray)
+            
+            # Calculate edge density using simple gradient
+            # Text has many horizontal and vertical edges
+            horizontal_edges = np.abs(np.diff(img_array, axis=1))
+            vertical_edges = np.abs(np.diff(img_array, axis=0))
+            
+            # High edge density indicates text
+            edge_density = (np.mean(horizontal_edges) + np.mean(vertical_edges)) / 2
+            
+            # Calculate contrast (text has high contrast)
+            contrast = np.std(img_array)
+            
+            # Text logos typically have:
+            # - Edge density > 15 (many edges)
+            # - Contrast > 40 (high contrast between text and background)
+            has_text = edge_density > 15 and contrast > 40
+            
+            if has_text:
+                self.logger.debug(f"Logo appears to contain text (edge_density={edge_density:.1f}, contrast={contrast:.1f})")
+            
+            return has_text
+            
+        except Exception as e:
+            self.logger.warning(f"Error detecting text in logo: {e}")
+            # Default to True to be safe (assume text might be present)
+            return True
+    
     def _get_dominant_color(self, image: Image.Image) -> Tuple[int, int, int]:
         """Extract the dominant color from an image region."""
         # Convert to RGB if needed
@@ -304,12 +354,12 @@ class AssetProcessor:
             similarity = self._color_similarity(bg_color, logo_color)
             
             # If colors are very similar (>70% similar), add background
+            # This ensures logo is visible when it blends into the background
             needs_background = similarity > 0.70
             
             if needs_background:
-                self.logger.debug(
-                    f"Logo needs background: similarity={similarity:.2f}, "
-                    f"bg={bg_color}, logo={logo_color}"
+                self.logger.info(
+                    f"Logo color matches background (similarity={similarity:.2f}) - adding semi-transparent black background"
                 )
             
             return needs_background
@@ -337,14 +387,31 @@ class AssetProcessor:
             logo_width = max_logo_width
             logo_height = int(logo_width / logo_aspect)
             
+            # Check if logo contains text that would be too small
+            # If logo is text-heavy and would be resized too small, increase size
+            if self._logo_has_text(logo):
+                # For text logos, ensure minimum readable size
+                min_text_width = 150  # Minimum width for readable text
+                
+                # For wide logos (aspect ratio > 2), they might need even more width
+                if logo_aspect > 2.0:
+                    min_text_width = max(200, int(width * 0.20))  # Up to 20% for wide text logos
+                elif logo_width < min_text_width:
+                    min_text_width = max(150, int(width * 0.18))  # Up to 18% for normal text logos
+                
+                if logo_width < min_text_width:
+                    logo_width = min_text_width
+                    logo_height = int(logo_width / logo_aspect)
+                    self.logger.info(f"Increased logo size to {logo_width}x{logo_height} to maintain text readability (aspect: {logo_aspect:.2f})")
+            
             logo = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
             
             padding = 20
             position = (width - logo_width - padding, padding)
             
-            # Check if logo needs background
+            # Check if logo needs background (if logo color matches background color)
             if self._logo_needs_background(image, logo, position):
-                # Add semi-transparent background behind logo
+                # Add semi-transparent black rectangle behind logo for better visibility
                 image = image.convert('RGBA')
                 
                 # Create overlay for background
@@ -361,13 +428,13 @@ class AssetProcessor:
                 # Draw semi-transparent black rectangle
                 overlay_draw.rectangle(
                     [bg_left, bg_top, bg_right, bg_bottom],
-                    fill=(0, 0, 0, 160)  # Slightly less opaque than text (180)
+                    fill=(0, 0, 0, 160)  # Semi-transparent black (alpha=160/255)
                 )
                 
                 # Composite the background
                 image = Image.alpha_composite(image, overlay)
                 
-                self.logger.debug("Added background behind logo (colors similar)")
+                self.logger.info("Added semi-transparent black background behind logo (logo color matches background)")
             
             # Convert to RGBA for pasting logo
             image = image.convert('RGBA')
@@ -382,9 +449,9 @@ class AssetProcessor:
             # Convert back to RGB
             image = image.convert('RGB')
             
-            self.logger.debug("Logo added successfully")
+            self.logger.info(f"Logo pasted at position {position}, size: {logo_width}x{logo_height}")
             
         except Exception as e:
-            self.logger.error(f"Failed to add logo: {e}")
+            self.logger.error(f"Failed to add logo: {e}", exc_info=True)
         
         return image

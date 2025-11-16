@@ -36,11 +36,16 @@ class CampaignValidator:
                 results['checks']['logo_detection'] = logo_result
                 if not logo_result['detected']:
                     results['overall_compliant'] = False
+                    self.logger.debug(f"Logo not detected (confidence: {logo_result.get('confidence', 0):.2f}, threshold: {logo_result.get('threshold', 0.6)})")
+            else:
+                self.logger.warning(f"Logo required but logo_path not found: {logo_path}")
         
         brand_colors = brand_guidelines.get('brand_colors', [])
         if brand_colors:
             color_result = self._validate_colors(image_path, brand_colors)
             results['checks']['color_validation'] = color_result
+            if not color_result.get('colors_present', False):
+                self.logger.debug(f"Brand colors not found in image (expected: {len(brand_colors)}, found: {color_result.get('matches_found', 0)})")
         
         quality_result = self._assess_quality(image_path)
         results['checks']['image_quality'] = quality_result
@@ -61,7 +66,18 @@ class CampaignValidator:
         gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray_logo = cv2.cvtColor(logo, cv2.COLOR_BGR2GRAY)
         
-        scales = [0.5, 0.75, 1.0, 1.25, 1.5]
+        # Logo is typically added at ~12% of image width, so we need smaller scales
+        # Calculate expected scale based on image/logo size ratio
+        expected_scale = min(gray_image.shape[1] / gray_logo.shape[1], gray_image.shape[0] / gray_logo.shape[0]) * 0.12
+        
+        # Use a wider range of scales, especially smaller ones to match the 12% scaling
+        base_scales = [0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.75, 1.0, 1.25, 1.5]
+        # Also include scales around the expected size
+        if expected_scale > 0:
+            scales = sorted(set(base_scales + [expected_scale * 0.8, expected_scale, expected_scale * 1.2]))
+        else:
+            scales = base_scales
+        
         best_match = 0.0
         
         for scale in scales:
@@ -78,13 +94,14 @@ class CampaignValidator:
             if max_val > best_match:
                 best_match = max_val
         
-        threshold = 0.6
+        threshold = 0.5  # Lowered from 0.6 to account for resizing artifacts
         detected = best_match >= threshold
         
         return {
             'detected': detected,
             'confidence': float(best_match),
-            'threshold': threshold
+            'threshold': threshold,
+            'expected_scale': float(expected_scale) if expected_scale > 0 else None
         }
     
     def _validate_colors(self, image_path: Path, brand_colors: List[str]) -> Dict:

@@ -46,7 +46,7 @@ if [ -f "$ASSET_DIR/product.jpg" ]; then
     echo "     open $ASSET_DIR/product.jpg"
     echo ""
     echo "  2. Run campaign using this asset:"
-    echo "     ./run_campaign.sh --brief inputs/briefs/sunglasses_campaign.yaml"
+    echo "     ./generate_campaign.sh --timestamp"
     echo ""
 else
     echo "❌ Download failed"
