@@ -37,7 +37,7 @@ GALLERY_FILE="outputs/timestamped_squares_gallery.html"
 # Check if output directory exists
 if [ ! -d "$OUTPUT_DIR" ]; then
     echo "No outputs found. Generate first:"
-    echo "  ./generate_campaign.sh --timestamp current"
+    echo "  ./scripts/generate_campaign.sh --timestamp current"
     exit 1
 fi
 

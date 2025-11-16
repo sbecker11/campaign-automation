@@ -228,6 +228,23 @@ class CampaignPipeline:
                 validation_result = self.validator.validate(variant_path, campaign)
                 if not validation_result.get('overall_compliant', True):
                     self.logger.warning(f"  ⚠️  Validation issues for {aspect_ratio} variant")
+                    checks = validation_result.get('checks', {})
+                    logo = checks.get('logo_detection') or {}
+                    if logo and not logo.get('detected', True):
+                        self.logger.warning(
+                            f"     - logo not detected (confidence {logo.get('confidence', 0):.2f} < threshold {logo.get('threshold', 0):.2f})"
+                        )
+                    color = checks.get('color_validation') or {}
+                    if color and not color.get('colors_present', True):
+                        expected = len(campaign.get('brand_guidelines', {}).get('brand_colors', []))
+                        self.logger.warning(
+                            f"     - brand colors not detected (matches_found {color.get('matches_found', 0)} of {expected})"
+                        )
+                    quality = checks.get('image_quality') or {}
+                    if isinstance(quality, dict) and quality.get('quality_score', 1.0) < 0.5:
+                        self.logger.warning(
+                            f"     - low image quality score ({quality.get('quality_score', 0):.2f})"
+                        )
                 
                 # Also check content
                 content_check = self.content_checker.check(campaign)

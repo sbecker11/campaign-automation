@@ -1,0 +1,54 @@
+{
+  "campaign_id": "test_campaign",
+  "campaign_name": "Test Campaign",
+  "generated_at": "2025-11-16T09:42:23.301699",
+  "summary": {
+    "total_products": 1,
+    "successful": 1,
+    "failed": 0,
+    "total_variants_generated": 2,
+    "total_variants_checked": 1,
+    "passed": 1,
+    "failed_checks": 0,
+    "compliance_rate": "100.0%"
+  },
+  "products": [
+    {
+      "product_id": "test_product",
+      "product_name": "Test Product",
+      "status": "success",
+      "base_image": "/path/to/image.png",
+      "variants": [
+        "/path/to/variant1.png",
+        "/path/to/variant2.png"
+      ],
+      "variant_count": 2
+    }
+  ],
+  "validations": [
+    {
+      "variant": "/path/to/variant1.png",
+      "ratio": "1:1",
+      "campaign_validation": {
+        "overall_compliant": true,
+        "checks": {}
+      },
+      "content_check": {
+        "passed": true
+      }
+    }
+  ],
+  "images": [
+    {
+      "path": "/path/to/variant1.png",
+      "ratio": "1:1",
+      "warnings": {
+        "logo_missing": false,
+        "colors_missing": false,
+        "low_quality": false
+      },
+      "deleted": false
+    }
+  ],
+  "deletes": []
+}

@@ -5,10 +5,22 @@ Handles image processing including aspect ratio conversion and text overlay.
 """
 
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Tuple, List, Optional
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+# Minimum logo width (as a fraction of image width) for tall 9:16 assets.
+# Configurable via .env: LOGO_WIDTH_RATIO_9_16=0.33
+try:
+    LOGO_WIDTH_RATIO_9_16 = float(os.getenv("LOGO_WIDTH_RATIO_9_16", "0.33"))
+except ValueError:
+    LOGO_WIDTH_RATIO_9_16 = 0.33
 
 
 class AssetProcessor:
@@ -385,6 +397,17 @@ class AssetProcessor:
             
             logo_aspect = logo.width / logo.height
             logo_width = max_logo_width
+            
+            # For tall 9:16 assets, ensure logo is not shrunk below a minimum
+            # so that it remains visually prominent (e.g., social stories).
+            if aspect_ratio == '9:16':
+                min_logo_width = int(width * LOGO_WIDTH_RATIO_9_16)  # configured fraction of width
+                if logo_width < min_logo_width:
+                    logo_width = min_logo_width
+                    self.logger.info(
+                        f"Increased logo base width for 9:16 from {max_logo_width}px to {logo_width}px "
+                        f"to keep it visible on tall assets"
+                    )
             logo_height = int(logo_width / logo_aspect)
             
             # Check if logo contains text that would be too small

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Refine Campaign</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif; margin: 0; }
+    header { position: sticky; top: 0; background: #fff; border-bottom: 1px solid #ddd; padding: 10px 16px; display: flex; gap: 12px; align-items: center; z-index: 2; }
+    .counts { margin-left: auto; display: flex; gap: 16px; font-size: 12px; }
+    .grid { padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .card { border: 2px solid #4CAF50; border-radius: 8px; background: #fff; overflow: hidden; transition: .2s; }
+    .card.marked {
+      border-width: 4px;
+      border-color: #f00;
+      box-shadow: 0 0 0 4px rgba(255,0,0,.25);
+    }
+    .card.marked .imgwrap img {
+      opacity: .45;
+      filter: grayscale(60%) brightness(0.9);
+    }
+    .imgwrap { aspect-ratio: 1/1; background: #fafafa; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .imgwrap img { width: 100%; height: 100%; object-fit: contain; }
+    .meta { padding: 8px; font-size: 12px; display:flex; flex-direction:column; gap:6px; }
+    .meta-footer { margin-top: 6px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .path { font-family: Menlo, Monaco, monospace; font-size: 11px; color: #333; word-break: break-all; }
+    .btn { cursor:pointer; padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; background:#fff; }
+    .btn.delete { border-color:#f00; color:#f00; }
+    .btn.save { background:#4a9eff; border-color:#4a9eff; color:#fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; width:100%;">
+      <button class="btn save" id="saveBtn">💾 Save Visibility</button>
+      <div class="counts">
+        <div>Hidden: <strong id="delCount">0</strong></div>
+        <div>Visible: <strong id="keepCount">0</strong></div>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-left:auto;">
+        <label>Product:
+          <select id="filter-product">
+            <option value="any">any</option>
+          </select>
+        </label>
+        <label>Aspect:
+          <select id="filter-aspect">
+            <option value="any">any</option>
+          </select>
+        </label>
+        <label>Status:
+          <select id="filter-status">
+            <option value="any">any</option>
+            <option value="visible">visible</option>
+            <option value="hidden">hidden</option>
+          </select>
+        </label>
+      </div>
+    </div>
+  </header>
+  <main class="grid" id="grid"></main>
+  <script>
+    // Expect campaign parameter ?campaign=<id[/timestamp]>; if missing, fetch latest from server
+    const params = new URLSearchParams(location.search);
+    let campaign = params.get('campaign') || '';
+    const delCount = document.getElementById('delCount');
+    const keepCount = document.getElementById('keepCount');
+    const grid = document.getElementById('grid');
+    let cards = [];
+    const updateCounts = () => {
+      const del = cards.filter(c => c.classList.contains('marked')).length;
+      delCount.textContent = del;
+      keepCount.textContent = Math.max(0, cards.length - del);
+    };
+    async function loadImages() {
+      // Read generation_report to enumerate variants (fallback to filesystem if needed)
+      try {
+        const genRes = await fetch(`/outputs/campaigns/${campaign}/reports/generation_report.json`);
+        if (genRes.ok) {
+          const gen = await genRes.json();
+          const images = (gen.products || []).flatMap(p => (p.variants || []));
+          const frag = document.createDocumentFragment();
+          const prodSet = new Set();
+          const aspSet = new Set();
+          images.forEach(p => {
+            const rel = p.startsWith('/') ? p.slice(1) : p;
+            const mProd = rel.match(/\/products\/([^/]+)\//);
+            const mAsp = rel.match(/\/products\/[^/]+\/([^/]+)\//);
+            const prod = mProd ? mProd[1] : '';
+            const asp = mAsp ? mAsp[1] : '';
+            if (prod) prodSet.add(prod);
+            if (asp) aspSet.add(asp);
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.dataset.path = rel;
+            if (prod) card.dataset.product = prod;
+            if (asp) card.dataset.aspect = asp;
+            card.innerHTML = `
+              <div class="imgwrap"><img src="/${rel}" alt=""></div>
+              <div class="meta">
+                <div>${prod ? ('product: ' + prod) : ''}</div>
+                <div>${asp ? ('aspect: ' + asp) : ''}</div>
+                <div class="path">${rel}</div>
+                <div class="meta-footer">
+                  <div class="compliance"></div>
+                  <div><button class="btn delete">🙈 Hide</button></div>
+                </div>
+              </div>`;
+            frag.appendChild(card);
+          });
+          grid.appendChild(frag);
+          cards = Array.from(grid.querySelectorAll('.card'));
+          // Populate filters
+          const prodSel = document.getElementById('filter-product');
+          const aspSel = document.getElementById('filter-aspect');
+          prodSet.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; prodSel.appendChild(o); });
+          aspSet.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; aspSel.appendChild(o); });
+          function applyFilters() {
+            const p = prodSel.value;
+            const a = aspSel.value;
+            const s = document.getElementById('filter-status').value;
+            let visible = 0;
+            let delVisible = 0;
+            cards.forEach(c => {
+              const isDel = c.classList.contains('marked');
+              const matchP = (p === 'any') || (c.dataset.product === p);
+              const matchA = (a === 'any') || (c.dataset.aspect === a);
+              let matchS = true;
+              if (s === 'visible') matchS = !isDel;
+              else if (s === 'hidden') matchS = isDel;
+              const show = matchP && matchA && matchS;
+              c.style.display = show ? '' : 'none';
+              if (show) {
+                visible++;
+                if (isDel) delVisible++;
+              }
+            });
+            delCount.textContent = delVisible;
+            keepCount.textContent = Math.max(0, visible - delVisible);
+          }
+          prodSel.addEventListener('change', applyFilters);
+          aspSel.addEventListener('change', applyFilters);
+          document.getElementById('filter-status').addEventListener('change', applyFilters);
+          window.__applyFilters = applyFilters;
+        }
+      } catch (e) { console.log('load images failed', e); }
+    }
+    function addComplianceIcons(card, warn) {
+      try {
+        const meta = card.querySelector('.meta-footer .compliance') || card.querySelector('.meta');
+        if (!meta) return;
+        // Remove any existing compliance row before adding
+        meta.innerHTML = '';
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.alignItems = 'center';
+        const mk = (label, pass) => {
+          const span = document.createElement('span');
+          span.title = label + ': ' + (pass ? 'pass' : 'fail');
+          span.textContent = (pass ? '✅ ' : '❌ ') + label;
+          span.style.fontSize = '12px';
+          return span;
+        };
+        const logoPass = warn && typeof warn.logo_missing === 'boolean' ? !warn.logo_missing : true;
+        const colorsPass = warn && typeof warn.colors_missing === 'boolean' ? !warn.colors_missing : true;
+        const qualityPass = warn && typeof warn.low_quality === 'boolean' ? !warn.low_quality : true;
+        row.appendChild(mk('logo', logoPass));
+        row.appendChild(mk('colors', colorsPass));
+        row.appendChild(mk('quality', qualityPass));
+        meta.insertBefore(row, meta.firstChild);
+      } catch (e) { /* noop */ }
+    }
+
+    async function preloadDeletes() {
+      try {
+        const res = await fetch(`/outputs/campaigns/${campaign}/status.json`);
+        if (res.ok) {
+          const js = await res.json();
+          const marked = new Set();
+          const warnByPath = new Map();
+          if (Array.isArray(js.images)) {
+            js.images.forEach(i => {
+              if (i && i.path) {
+                if (i.deleted) marked.add(i.path);
+                if (i.warnings) warnByPath.set(i.path, i.warnings);
+              }
+            });
+          }
+          if (Array.isArray(js.images)) js.images.forEach(i => { if (i && i.deleted && i.path) marked.add(i.path); });
+          if (Array.isArray(js.deletes)) js.deletes.forEach(p => marked.add(p));
+          cards.forEach(c => {
+            const btn = c.querySelector('.btn.delete');
+            if (marked.has(c.dataset.path)) {
+              c.classList.add('marked');
+              if (btn) btn.textContent = '👁 Show';
+            } else if (btn) {
+              btn.textContent = '🙈 Hide';
+            }
+            // Add compliance icons row (non-editable)
+            const w = warnByPath.get(c.dataset.path);
+            addComplianceIcons(c, w);
+          });
+        }
+      } catch (e) { console.log('preload failed', e); }
+      updateCounts();
+    }
+    grid.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn.delete');
+      if (!btn) return;
+      const card = e.target.closest('.card');
+      if (!card) return;
+      card.classList.toggle('marked');
+      // Update button label based on state
+      if (card.classList.contains('marked')) {
+        btn.textContent = '👁 Show';
+      } else {
+        btn.textContent = '🙈 Hide';
+      }
+      updateCounts();
+    });
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      try {
+        const deletes = cards.filter(c => c.classList.contains('marked')).map(c => c.dataset.path);
+        const resp = await fetch('/api/save_status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignId: campaign,
+            deletes,
+            images: deletes.map(p => ({ path: p, deleted: true }))
+          })
+        });
+        if (resp.ok) alert('Saved visibility status.json');
+        else alert('Save failed: HTTP ' + resp.status);
+      } catch (e) { alert('Save failed: ' + e); }
+    });
+    (async function init() {
+      if (!campaign) {
+        try {
+          const r = await fetch('/api/latest_campaign');
+          if (r.ok) {
+            const j = await r.json();
+            if (j.campaign) {
+              campaign = j.campaign;
+              // Update URL without reload
+              const url = new URL(window.location.href);
+              url.searchParams.set('campaign', campaign);
+              window.history.replaceState({}, '', url.toString());
+            }
+          }
+        } catch (e) { console.log('latest campaign fetch failed', e); }
+      }
+      if (!campaign) { alert('No campaigns found. Generate a campaign first.'); return; }
+      await loadImages();
+      await preloadDeletes();
+    })();
+  </script>
+</body>
+</html>
+
+

@@ -77,7 +77,7 @@ class ImageGenerator:
             
             # Validate image - check for color bars and regenerate if found
             max_retries = 3
-            retry_count = 0
+            retry_count = 0  # number of additional regenerations due to color bars
             while retry_count < max_retries:
                 if self._has_color_bars(output_path):
                     self.logger.warning(f"Color bars detected in generated image (attempt {retry_count + 1}/{max_retries})")
@@ -101,7 +101,16 @@ class ImageGenerator:
                 else:
                     break
             
-            self.logger.info(f"Image generated successfully: {output_path}")
+            total_generations = 1 + retry_count
+            if total_generations > 1:
+                self.logger.info(
+                    f"Image generated successfully after {total_generations} calls to DALL-E for product {product_id}"
+                )
+            else:
+                self.logger.info(
+                    f"Image generated successfully on first DALL-E call for product {product_id}"
+                )
+            self.logger.info(f"Final image path: {output_path}")
             return output_path
             
         except Exception as e:

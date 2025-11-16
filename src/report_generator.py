@@ -42,6 +42,17 @@ class ReportGenerator:
             compliance_path.write_text(json.dumps(compliance_report, indent=2))
             self.logger.info(f"Compliance report saved: {compliance_path}")
             
+            # Also emit a combined status.json at the campaign root (file-based single source of truth)
+            try:
+                # campaign root is parent of reports directory
+                campaign_root = output_dir.parent
+                combined = self._combine_status(generation_report, compliance_report)
+                status_path = campaign_root / 'status.json'
+                status_path.write_text(json.dumps(combined, indent=2))
+                self.logger.info(f"Combined status saved: {status_path}")
+            except Exception as e:
+                self.logger.warning(f"Failed to write combined status.json: {e}")
+            
         except Exception as e:
             self.logger.error(f"Failed to generate reports: {e}")
     
@@ -87,6 +98,62 @@ class ReportGenerator:
         
         return report
     
+    def _combine_status(self, generation: Dict, compliance: Dict) -> Dict:
+        """Combine generation and compliance reports into a single status structure."""
+        combined_summary = {
+            'total_products': generation.get('summary', {}).get('total_products'),
+            'successful': generation.get('summary', {}).get('successful'),
+            'failed': generation.get('summary', {}).get('failed'),
+            'total_variants_generated': generation.get('summary', {}).get('total_variants_generated'),
+            'total_variants_checked': compliance.get('summary', {}).get('total_variants_checked'),
+            'passed': compliance.get('summary', {}).get('passed'),
+            'failed_checks': compliance.get('summary', {}).get('failed'),
+            'compliance_rate': compliance.get('summary', {}).get('compliance_rate'),
+        }
+        
+        # Build per-image records with warning flags derived from validations
+        images = []
+        for v in compliance.get('validations', []):
+            try:
+                path = v.get('variant') or ''
+                ratio = v.get('ratio')
+                checks = v.get('campaign_validation', {}) or {}
+                logo = checks.get('logo_detection') or {}
+                color = checks.get('color_validation') or {}
+                qual = checks.get('image_quality') or {}
+                logo_missing = (bool(logo) and not logo.get('detected', True))
+                colors_missing = (bool(color) and not color.get('colors_present', True))
+                low_quality = (isinstance(qual, dict) and qual.get('quality_score', 1.0) < 0.5)
+                warnings = {
+                    'logo_missing': logo_missing,
+                    'colors_missing': colors_missing,
+                    'low_quality': low_quality,
+                }
+                deleted = any(warnings.values())
+                images.append({
+                    'path': path,
+                    'ratio': ratio,
+                    'warnings': warnings,
+                    'deleted': deleted,
+                })
+            except Exception:
+                continue
+        
+        combined = {
+            'campaign_id': generation.get('campaign_id') or compliance.get('campaign_id'),
+            'campaign_name': generation.get('campaign_name') or compliance.get('campaign_name'),
+            'generated_at': generation.get('generated_at') or compliance.get('generated_at'),
+            'summary': combined_summary,
+            'products': generation.get('products', []),
+            # Include validations for convenience (optional)
+            'validations': compliance.get('validations', []),
+            # Per-image status with warnings and deleted flag (file-based single source of truth)
+            'images': images,
+            # File-based refine state; UI will update this array
+            'deletes': []
+        }
+        return combined
+    
     def _create_compliance_report(self, results: List[Dict], brief: Dict) -> Dict:
         """Create compliance report with validation details."""
         all_validations = []
@@ -98,8 +165,8 @@ class ReportGenerator:
                 for validation in result.get('validations', []):
                     all_validations.append(validation)
                     
-                    # Count checks (only if campaign_validation exists)
-                    campaign_val = validation.get('campaign_validation', {})
+                    # Count checks (supports both legacy 'brand_validation' and 'campaign_validation')
+                    campaign_val = validation.get('campaign_validation') or validation.get('brand_validation') or {}
                     if campaign_val:
                         total_checks += 1
                         if campaign_val.get('overall_compliant', True):

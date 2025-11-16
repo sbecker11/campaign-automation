@@ -45,6 +45,7 @@ class CampaignValidator:
             color_result = self._validate_colors(image_path, brand_colors)
             results['checks']['color_validation'] = color_result
             if not color_result.get('colors_present', False):
+                # Color absence does not hard fail overall by default, but we report it
                 self.logger.debug(f"Brand colors not found in image (expected: {len(brand_colors)}, found: {color_result.get('matches_found', 0)})")
         
         quality_result = self._assess_quality(image_path)
@@ -52,6 +53,26 @@ class CampaignValidator:
         
         status = '✓ PASS' if results['overall_compliant'] else '✗ FAIL'
         self.logger.info(f"Validation complete: {status}")
+        
+        # Emit reasons for failure or weak checks
+        reasons: List[str] = []
+        logo_check = results['checks'].get('logo_detection')
+        if logo_check and not logo_check.get('detected', True):
+            reasons.append(
+                f"logo not detected (confidence {logo_check.get('confidence', 0):.2f} < threshold {logo_check.get('threshold', 0.0):.2f})"
+            )
+        color_check = results['checks'].get('color_validation')
+        if color_check and not color_check.get('colors_present', True):
+            reasons.append(
+                f"brand colors not detected (matches_found {color_check.get('matches_found', 0)} of {len(brand_colors)})"
+            )
+        qual = results['checks'].get('image_quality', {})
+        if isinstance(qual, dict) and qual.get('quality_score', 1.0) < 0.5:
+            reasons.append(f"low image quality score ({qual.get('quality_score', 0):.2f})")
+        
+        if reasons:
+            for r in reasons:
+                self.logger.warning(f"  • {r}")
         
         return results
     

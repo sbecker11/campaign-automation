@@ -60,15 +60,7 @@ if [[ "$MODE" == "default" ]]; then
         exit 1
     fi
 
-    echo "🚀 Running Campaign Automation Pipeline"
-    echo "   Campaign: $CAMPAIGN_FILE"
-    echo "   Output: Timestamped (each run creates a new directory)"
-    echo ""
-
-    # Always run timestamped
-    python -m src.pipeline --campaign "$CAMPAIGN_FILE" --timestamp
-
-    # Extract campaign_id from YAML file
+    # Extract campaign_id early and echo
     CAMPAIGN_ID=$(python -c "
 import yaml
 with open('$CAMPAIGN_FILE', 'r') as f:
@@ -76,13 +68,24 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     print(data.get('campaign_id', ''))
 ")
 
-    # Find the most recent run directory
+    echo "🚀 Running Campaign Automation Pipeline"
+    echo "   Campaign: $CAMPAIGN_FILE"
+    echo "   Campaign ID: $CAMPAIGN_ID"
+    echo "   Output: Timestamped (each run creates a new directory)"
+    echo ""
+
+    # Always run timestamped
+    python -m src.pipeline --campaign "$CAMPAIGN_FILE" --timestamp
+
+    # Find the most recent run directory for this campaign
     CAMPAIGN_OUTPUT_DIR=$(ls -td "outputs/campaigns/${CAMPAIGN_ID}"_* 2>/dev/null | head -n 1)
+    echo "   Campaign ID: $CAMPAIGN_ID"
+    echo "   Latest run dir: ${CAMPAIGN_OUTPUT_DIR:-'(not found)'}"
 
     # Create status.json with empty deletes array (keeps by default)
     if [[ -d "$CAMPAIGN_OUTPUT_DIR" ]]; then
         echo ""
-        echo "📝 Creating status.json file..."
+        echo "📝 Creating status.json file for Campaign ID: $CAMPAIGN_ID"
         python -c "
 import json
 from pathlib import Path
@@ -93,10 +96,13 @@ with open(status_file, 'w') as f:
 print(f'  ✓ Created: {status_file}')
 "
         echo ""
-        echo "✅ Campaign generation complete!"
+        echo "✅ Campaign generation complete for: $CAMPAIGN_ID"
         echo "   Status.json file created with all images marked as keeps"
+        echo "   Review status: cat \"$CAMPAIGN_OUTPUT_DIR/status.json\""
+        echo "   Next: ./scripts/refine_campaign.sh"
     else
-        echo "⚠️  Warning: Could not locate output directory for status.json"
+        echo "⚠️  Warning: Could not locate output directory for status.json (Campaign ID: $CAMPAIGN_ID)"
+        echo "   Next: ./scripts/refine_campaign.sh"
     fi
     exit 0
 fi
@@ -115,8 +121,17 @@ if [[ "$MODE" == "output_dir" ]]; then
         exit 1
     fi
 
+    # Extract campaign_id and echo
+    CAMPAIGN_ID=$(python -c "
+import yaml
+with open('$CAMPAIGN_FILE', 'r') as f:
+    data = yaml.safe_load(f)
+    print(data.get('campaign_id', ''))
+")
+
     echo "🚀 Running Campaign Automation Pipeline"
     echo "   Campaign: $CAMPAIGN_FILE"
+    echo "   Campaign ID: $CAMPAIGN_ID"
     echo "   Output: Timestamped (each run creates a new directory)"
     echo ""
 
@@ -127,7 +142,7 @@ if [[ "$MODE" == "output_dir" ]]; then
     STATUS_TARGET_DIR="$OUTPUT_DIR_ARG"
     if [[ -d "$STATUS_TARGET_DIR" ]]; then
         echo ""
-        echo "📝 Creating status.json in provided output directory..."
+        echo "📝 Creating status.json in provided output directory for Campaign ID: $CAMPAIGN_ID"
         python -c "
 import json
 from pathlib import Path
@@ -138,9 +153,12 @@ with open(status_file, 'w') as f:
 print(f'  ✓ Created: {status_file}')
 "
         echo ""
-        echo "✅ Status file created in: $STATUS_TARGET_DIR"
+        echo "✅ Status file created in: $STATUS_TARGET_DIR for Campaign ID: $CAMPAIGN_ID"
+        echo "   Review status: cat \"$STATUS_TARGET_DIR/status.json\""
+        echo "   Next: ./scripts/refine_campaign.sh"
     else
-        echo "⚠️  Warning: Provided output directory not found for status.json: $STATUS_TARGET_DIR"
+        echo "⚠️  Warning: Provided output directory not found for status.json: $STATUS_TARGET_DIR (Campaign ID: $CAMPAIGN_ID)"
+        echo "   Next: ./scripts/refine_campaign.sh"
     fi
     exit 0
 fi
