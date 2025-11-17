@@ -2,168 +2,99 @@ DEMO SCRIPT — 3 MINUTES, NO PAUSES (LIVE DELIVERY)
 
 00:00 — TITLE & CONTEXT (5s)
 +---------------------------------------------------------------
-| CAMPAIGN AUTOMATION PROJECT: GENERATE IMAGES, REVIEW FAST, MARK DELETES.
-|
-| open https://github.com/sbecker11                          
-| open https://github.com/sbecker11/campaign-automation 
-| copy git path                         
+|| CAMPAIGN AUTOMATION PROJECT: GENERATE IMAGES, REVIEW FAST, MARK DELETES.
+||
+|| open https://github.com/sbecker11                          
+|| open https://github.com/sbecker11/campaign-automation 
+|| copy git path                         
 +---------------------------------------------------------------
 
-00:05 — INSTALL (25s)
+00:05 — INSTALL (15s)
 +----------------------------------------------------------------
-| MAKE A DEMO-WORKSPACE FOLDER
-|
-| cd ~
-| mkdir demo-workspace
+|| MAKE A DEMO-WORKSPACE FOLDER
+||
+|| cd ~
+|| mkdir demo-workspace
 +------------------------------------------------------
 +------------------------------------------------------
-| CLONE THE GITHUB PROJECT INTO THE DEMO-WORKSPACE FOLDER
-|
-| cd demo-workspace
-| git clone https://github.com/sbecker11/campaign-automation.git
+|| CLONE THE GITHUB PROJECT INTO THE DEMO-WORKSPACE FOLDER
+||
+|| cd demo-workspace
+|| git clone https://github.com/sbecker11/campaign-automation.git
 +------------------------------------------------------
 +------------------------------------------------------
-| REVIEW THE PROJECT STRUCTURE
-|
-| cd campaign-automation
-
-> tree ./campaign-automation -L 2
-./campaign-automation
-├── README.md
-├── DEMO_SCRIPT.txt
-├── requirements.txt
-├── assets
-│   ├── generated_logo.png
-│   └── spexture.com-logo.png
-├── inputs
-│   └── campaigns
-├── outputs
-│   └── campaigns
-├── scripts
-│   ├── generate_campaign.sh
-│   ├── refine_campaigns.sh
-│   ├── report_campaign.sh
-│   └── run_tests_w_coverage.sh
-├── src
-│   ├── __init__.py
-│   ├── asset_processor.py
-│   ├── campaign_parser.py
-│   ├── campaign_validator.py
-│   ├── content_checker.py
-│   ├── image_generator.py
-│   ├── pipeline.py
-│   ├── report_generator.py
-│   └── utils.py
-├── tests
-│   ├── conftest.py
-│   ├── test_asset_processor_logo_validation.py
-│   ├── test_asset_processor.py
-│   ├── test_campaign_parser.py
-│   ├── test_content_checker.py
-│   ├── test_image_generator.py
-│   ├── test_pipeline_default_logo.py
-│   ├── test_pipeline.py
-│   ├── test_report_generator.py
-│   └── test_utils.py
-└── venv
-    ├── bin
-    ├── include
-    ├── lib
-    └── pyvenv.cfg
-
-|---------------------------------------------
-| CREATE VIRTUAL ENVIRONMENT
-|
-| python -m venv venv 
+|| RUN ONE-COMMAND SETUP
+|| (Creates venv, installs dependencies, sets up pre-commit hook)
+||
+|| cd campaign-automation
+|| ./setup.sh
 +------------------------------------------------------
 +------------------------------------------------------
-| ACTIVATE VIRTUAL ENVIRONMENT
-|
-| source venv/bin/activate
-+------------------------------------------------------
-+------------------------------------------------------
-| UPGRADE PIP INSTALLER  
-|
-| pip install --upgrade pip
-+------------------------------------------------------
-+------------------------------------------------------
-| INSTALL REQUIRED PACKAGES
-|
-| pip install -r requirements.txt
-+------------------------------------------------------
-+------------------------------------------------------
-| SET PYTHONPATH FOR IMPORTS
-|
-| export PYTHONPATH="$PWD:$PWD/src:$PYTHONPATH"
-+------------------------------------------------------
-+------------------------------------------------------
-| ADD OPENAI_API_KEY TO LOCAL .env FILE 
-|
-| cp ../workspace-campaign-automation/.env .
-| cat .env
+|| ADD OPENAI_API_KEY TO LOCAL .env FILE 
+||
+|| cp ../workspace-campaign-automation/.env .
+|| cat .env
 +------------------------------------------------------
 
-00:40 — TESTS (20s)
+00:20 — TESTS (20s)
 +------------------------------------------------------+
-| NOW WE'LL RUN ALL TESTS WITH COVERAGE
-|
-| ./scripts/run_tests_w_coverage.sh                    
+|| NOW WE'LL RUN ALL TESTS WITH COVERAGE
+||
+|| ./scripts/run_tests_w_coverage.sh                    
 +------------------------------------------------------+
 
-01:00 — GENERATE (35s)
+00:40 — GENERATE (35s)
 --------------------------------------------------------
-| REVIEW THE LATEST campaign.yml FILE
-|
-| cat campaign-automation/inputs/campaigns/example_campaign.yaml
+|| REVIEW THE LATEST campaign.yml FILE
+||
+|| cat campaign-automation/inputs/campaigns/example_campaign.yaml
 --------------------------------------------------------
 
 --------------------------------------------------------
-| GENERATE THE PRODUCT IMAGES AND APPLY COMPLIENCE CHECKS
-| USE OPENAI (DALL·E 3) TO GENERATE IMAGES (WITH REGEN IF COLOR BARS)
-| USE PILLOW TO DETECT EDGE COLOR BARS AND TRIGGER REGEN
-| USE PILLOW TO CENTER AND WRAP OVERLAY TEXT WITH BACKGROUND
-| USE PILLOW TO VALIDATE LOGO FILE (FORMAT, SIZE) BEFORE ADD
-| USE OPENCV TO DETECT LOGO PRESENCE VIA TEMPLATE MATCHING
-| USE OPENCV TO SCORE SHARPNESS (LAPLACIAN VARIANCE)
-| USE PILLOW TO ADD SEMI-TRANSPARENT BACKGROUND BEHIND LOGO IF NEEDED
-| USE CONTENT CHECKER TO FLAG PROHIBITED WORDS
-| USE REPORT GENERATOR TO WRITE JSON (GENERATION + COMPLIANCE)
-| USE PIPELINE TO ORGANIZE OUTPUTS PER CAMPAIGN/TIMESTAMP 
-|
-| ./scripts/generate_campaign.sh                       
+|| GENERATE THE PRODUCT IMAGES AND APPLY COMPLIENCE CHECKS
+|| USE OPENAI (DALL·E 3) TO GENERATE IMAGES (WITH REGEN IF COLOR BARS)
+|| USE PILLOW TO DETECT EDGE COLOR BARS AND TRIGGER REGEN
+|| USE PILLOW TO CENTER AND WRAP OVERLAY TEXT WITH BACKGROUND
+|| USE PILLOW TO VALIDATE LOGO FILE (FORMAT, SIZE) BEFORE ADD
+|| USE OPENCV TO DETECT LOGO PRESENCE VIA TEMPLATE MATCHING
+|| USE OPENCV TO SCORE SHARPNESS (LAPLACIAN VARIANCE)
+|| USE PILLOW TO ADD SEMI-TRANSPARENT BACKGROUND BEHIND LOGO IF NEEDED
+|| USE CONTENT CHECKER TO FLAG PROHIBITED WORDS
+|| USE REPORT GENERATOR TO WRITE JSON (GENERATION + COMPLIANCE)
+|| USE PIPELINE TO ORGANIZE OUTPUTS PER CAMPAIGN/TIMESTAMP 
+||
+|| ./scripts/generate_campaign.sh                       
 +-------------------------------------------------------
 
-01:35 — STATS (10s)
+01:15 — REFINE (45s)
 +-------------------------------------------------------
-| REVIEW COMPLIENCE CHECKS
-}
-| ./scripts/stats_campaign.sh --pretty                  
+|| NOW WE'LL REVIEW THE NEWLY-GENERATED CAMPAIGN IMAGES:
+||
+|| HIDE OR SHOW IMAGES
+||
+|| ADD COMMENTS
+||
+||
+|| SAVE THE CAMPAIGN USING THE "SAVE CAMPAIGN" button
+||
+||
+|| COMMIT CAMPAIGN CHANGES TO
+|| GIT HUB USING THE "COMMIT CAMPAIGN" BUTTON
+||
+||
+|| USE THE "EXIT" BUTTON TO EXIT THE REFINE_CAMPAIGN WEB APP.
+||
+|| ./scripts/refine_campaign.sh                         
 +-------------------------------------------------------
 
-01:45 — REFINE (45s)
-+-------------------------------------------------------
-| NOW WE'LL REVIEW THE NEWLY-GENERATED CAMPAIGN IMAGES AND 
-| MARK IMAGES TO KEEP OR DELETE, AND EXPORT THE UPDATED STATUS.JSON FILE.
-|
-| ./scripts/refine_campaign.sh                         
-+-------------------------------------------------------
-
-02:30 — CHECK UOPDATED STATUS VALUES (10s)
-+-------------------------------------------------------
-| VERIFY REFINED STATUS OF ALL CAMPAIGN IMAGES
-|
-| ./scripts/stats_campaign.sh --pretty                    
-+-------------------------------------------------------
-
-02:40 — CLOSEOUT (20s)
+02:00 — CLOSEOUT (20s)
 +------------------------------------------------------+
-| SAVE THIS CAMPAIGN TO A UNIQUE GITHUB BRANCH
-|
-| CAMPAIGN_NAME="LATEST-CAMPAIGN-$(iso8601)"
-| git checkout -b ${CAMPAIGN_NAME}
-| git add .        
-| git commit -m "Generated and refined latest campaign images"
+|| SAVE THIS CAMPAIGN TO A UNIQUE GITHUB BRANCH
+||
+|| CAMPAIGN_NAME="LATEST-CAMPAIGN-$(iso8601)"
+|| git checkout -b ${CAMPAIGN_NAME}
+|| git add .        
+|| git commit -m "Generated and refined latest campaign images"
 +------------------------------------------------------+
 
-That’s the loop. Repeat Generate → Stats → Refine. Commit if desired.
-
+That's the loop. Repeat Generate → Refine. Commit if desired.

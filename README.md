@@ -4,11 +4,22 @@ AI-powered campaign asset generation for social ad campaigns using DALL-E 3, com
 
 **Built for Fanatics Data Engineering Take-Home Exercise**
 
+## Refine Campaign UI
+
+The refine campaign interface provides a visual way to review, manage, and commit campaign outputs:
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
+  <img src="docs/refine_ui_initial.png" alt="Refine UI - Initial view with all images visible" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/refine_ui_hidden.png" alt="Refine UI - View with hidden image and comment" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/refine_ui_filters.png" alt="Refine UI - Filtering by product" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/refine_ui_commit.png" alt="Refine UI - Commit campaign modal" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+</div>
+
 ---
 
 ## Quick Setup
 
-### 1. Clone and Navigate
+### 1. Clone and Run Setup
 ```bash
 # Create workspace directory
 mkdir -p ~/workspace-campaign-automation && cd ~/workspace-campaign-automation
@@ -18,37 +29,20 @@ git clone https://github.com/sbecker11/campaign-automation.git
 
 # Navigate into the project
 cd campaign-automation
+
+# Run one-command setup (creates venv, installs dependencies, sets up pre-commit hook)
+./setup.sh
 ```
 
 **Note:** The project root is `~/workspace-campaign-automation/campaign-automation`
 
-### 2. Create the Virtual Environment
-```bash
-# Create the virtual environment
-python3 -m venv venv
+The setup script automatically:
+- ✅ Creates virtual environment
+- ✅ Installs all Python dependencies
+- ✅ Installs package in editable mode
+- ✅ Installs pre-commit hook (prevents committing output files)
 
-# Activate the virtual environment
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Upgrade the pip installer
-pip install --upgrade pip
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install package in editable mode (so imports work)
-pip install -e .
-```
-
-### 3. Install Pre-commit Hook (Recommended)
-```bash
-# Install the pre-commit hook to prevent accidentally committing output files
-./scripts/install_pre_commit_hook.sh
-```
-
-**Note:** This hook prevents committing any files in the `outputs/` directory to the main code repository. Output files should be committed to the separate `campaign-automation-outputs` repository instead.
-
-### 4. Configure API Key
+### 2. Configure API Key
 ```bash
 # Copy .env file from your workspace (if you have one)
 # Or create a new one:
@@ -58,7 +52,7 @@ echo 'OPENAI_API_KEY=sk-your-key-here' > .env
 cp ~/workspace-campaign-automation/campaign-automation/.env .  # Adjust path as needed
 ```
 
-### 4. Verify Setup
+### 3. Verify Setup
 ```bash
 # Check project structure
 tree inputs/ -L 2
@@ -126,30 +120,38 @@ tree inputs/ -L 2
 
 **Expected cost:** ~$0.08 (2 products × $0.04/image)
 
-### Review Outputs
+### Review and Refine Outputs
 ```bash
-# View campaign outputs using the helper script
-./view_campaign.sh
+# Open the refine UI for the latest campaign
+./refine_campaign.sh
 
-# Or view a specific campaign
-./view_campaign.sh summer_2024
+# Or open a specific campaign
+./refine_campaign.sh summer_2024_20251116_104032
 
 # View output structure manually
-tree outputs/campaigns/summer_2024 -L 3
+tree outputs/campaigns/summer_2024_20251116_104032 -L 3
 
-# Open all generated images
-open outputs/campaigns/summer_2024/products/*/*/*.png
-
-# View generation report
-cat outputs/campaigns/summer_2024/reports/generation_report.json | python -m json.tool
-
-# View compliance report
-cat outputs/campaigns/summer_2024/reports/compliance_report.json | python -m json.tool
+# View consolidated campaign data
+cat outputs/campaigns/summer_2024_20251116_104032/campaign_generated.json | python -m json.tool
 
 # Count generated files
-find outputs/campaigns/summer_2024 -name "*.png" | wc -l
+find outputs/campaigns/summer_2024_20251116_104032 -name "*.png" | wc -l
 # Expected: 6 images (2 products × 3 formats)
 ```
+
+**The `refine_campaign.sh` script opens a web-based UI where you can:**
+
+- **HIDE OR SHOW IMAGES** - Mark images as hidden or visible
+- **ADD COMMENTS** - Add notes to individual images (max 512 characters)
+- **SAVE THE CAMPAIGN** - Use the "💾 Save Campaign" button to persist visibility and comments to `campaign_generated.json`
+- **COMMIT CAMPAIGN CHANGES TO GITHUB** - Use the "📦 Commit Campaign" button to commit outputs to the separate outputs repository
+- **EXIT THE REFINE UI** - Use the "🚪 Exit" button to close the server and browser window
+
+The UI also provides:
+- 📸 Visual grid view of all campaign images with thumbnails
+- 🔍 Filtering by product, variant (aspect ratio), and status (visible/hidden)
+- 📊 Live counts showing hidden/visible totals
+- ✅ Validation indicators showing logo, color, and quality compliance status per image
 
 **What to look for in outputs:**
 - ✅ AI-generated product photos (sunscreen bottle, beach towel)
@@ -168,23 +170,36 @@ This flow shows how a campaign YAML file is processed through image generation, 
 
 ---
 
-## View All Outputs
+## Refine Campaign Outputs
 
-### Helper Script
+### Using the Refine UI
 ```bash
-# View default campaign outputs
-./view_campaign.sh
+# Open refine UI for the latest campaign
+./refine_campaign.sh
 
-# View specific campaign
-./view_campaign.sh summer_2024
+# Open refine UI for a specific campaign
+./refine_campaign.sh summer_2024_20251116_104032
 ```
 
-The `view_campaign.sh` script provides an interactive menu to:
-- Preview all images at once
-- Open in file browser
-- List all image files
-- Show generation report
-- Show compliance report
+The `refine_campaign.sh` script launches a web-based interface for reviewing and managing campaign outputs. 
+
+**Workflow:**
+
+1. **HIDE OR SHOW IMAGES** - Click "🙈 Hide" to mark images as hidden (red border, grayscale effect) or "👁 Show" to mark hidden images as visible again
+
+2. **ADD COMMENTS** - Add notes to any image (stored in `campaign_generated.json`, max 512 characters per image)
+
+3. **SAVE THE CAMPAIGN** - Use the "💾 Save Campaign" button to persist all visibility and comment changes to `campaign_generated.json`
+
+4. **COMMIT CAMPAIGN CHANGES TO GITHUB** - Use the "📦 Commit Campaign" button to commit outputs to the separate outputs repository on a campaign-specific branch
+
+5. **EXIT THE REFINE UI** - Use the "🚪 Exit" button to close the server and browser window
+
+**Additional Features:**
+- 📸 Visual grid layout showing all generated images with thumbnails
+- 🔍 Filtering by product, variant/aspect ratio (1:1, 9:16, 16:9, etc.), and status (visible, hidden, or any)
+- 📊 Real-time hidden/visible counts that update as you work
+- ✅ Compliance indicators showing logo, color, and quality validation status per image
 
 ### Quick Commands
 ```bash
@@ -263,7 +278,7 @@ campaign-automation/
 ├── tests/                              # Unit tests
 ├── temp/                               # Temporary files
 ├── run_campaign.sh                     # Main runner script
-├── view_campaign.sh                    # Output viewer script
+├── refine_campaign.sh                  # Campaign refinement UI launcher
 ├── requirements.txt                    # Python dependencies
 ├── setup.py                            # Package setup
 ├── .env                                # Environment variables (create this)
@@ -431,7 +446,7 @@ cp your_logo.png assets/generated_logo.png
 ./run_campaign.sh inputs/campaigns/my_campaign.yaml
 
 # 4. View outputs
-./view_campaign.sh my_campaign_2024
+./refine_campaign.sh my_campaign_2024_20251116_104032
 ```
 
 ---
@@ -548,10 +563,10 @@ ls inputs/campaigns/
 ./run_campaign.sh inputs/campaigns/my_campaign.yaml
 
 # View campaign outputs
-./view_campaign.sh
+./refine_campaign.sh
 
 # View specific campaign
-./view_campaign.sh campaign_id
+./refine_campaign.sh campaign_id_timestamp
 
 # Count generated images
 find outputs/campaigns -name "*.png" | wc -l
@@ -600,9 +615,9 @@ cat inputs/campaigns/example_campaign.yaml
 
 ### Part 4: Results (30 seconds)
 ```bash
-./view_campaign.sh
-# Use interactive menu to preview images
-cat outputs/campaigns/summer_2024/reports/generation_report.json | head -20
+./refine_campaign.sh
+# Refine UI opens in browser - show filtering, hiding images, adding comments
+cat outputs/campaigns/summer_2024_20251116_104032/campaign_generated.json | head -20
 ```
 
 ### Part 5: Testing & Quality (25 seconds)
