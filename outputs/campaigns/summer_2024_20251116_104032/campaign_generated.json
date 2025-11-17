@@ -124,7 +124,11 @@
             "low_quality": false
           },
           "hidden": true,
+<<<<<<< Updated upstream
           "comment": "brand logo is not visible"
+=======
+          "comment": "logo not okay so this variance has been hidden. more text for fun and giggles.kjsd lfkja dkfjlskdf aslk ljkdf dkl jakfd laskdf slkadfj sldkfjsl kdf lsk"
+>>>>>>> Stashed changes
         },
         {
           "path": "outputs/campaigns/summer_2024_20251116_104032/products/sunscreen_spf50/sunscreen_spf50_resized_16x9.png",
@@ -347,7 +351,11 @@
         "low_quality": false
       },
       "hidden": true,
+<<<<<<< Updated upstream
       "comment": "brand logo is not visible"
+=======
+      "comment": "logo not okay so this variance has been hidden. more text for fun and giggles.kjsd lfkja dkfjlskdf aslk ljkdf dkl jakfd laskdf slkadfj sldkfjsl kdf lsk"
+>>>>>>> Stashed changes
     },
     {
       "path": "outputs/campaigns/summer_2024_20251116_104032/products/sunscreen_spf50/sunscreen_spf50_resized_16x9.png",

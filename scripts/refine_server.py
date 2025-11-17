@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import subprocess
 import threading
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
@@ -115,6 +116,150 @@ class RefineHandler(SimpleHTTPRequestHandler):
             self._send_cors_headers()
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
+            return
+
+        if parsed.path == "/api/commit_campaign":
+            content_length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(content_length or 0)
+            try:
+                payload = json.loads(body.decode("utf-8"))
+            except Exception:
+                self.send_response(400)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(b'{"error":"invalid json"}')
+                return
+
+            campaign_id_timestamp = payload.get("campaignIdTimestamp")
+            if not campaign_id_timestamp:
+                self.send_response(400)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(b'{"error":"campaignIdTimestamp required"}')
+                return
+
+            # Execute git commands in sequence
+            results = []
+            commands = [
+                ["git", "checkout", "-b", campaign_id_timestamp],
+                ["git", "add", "."],
+                ["git", "commit", "-m", f"saving {campaign_id_timestamp} to github"],
+                ["git", "push"]
+            ]
+            
+            try:
+                for idx, cmd in enumerate(commands):
+                    result = {"command": " ".join(cmd), "success": False, "output": "", "error": ""}
+                    try:
+                        proc = subprocess.run(
+                            cmd,
+                            cwd=PROJECT_ROOT,
+                            capture_output=True,
+                            text=True,
+                            timeout=30
+                        )
+                        result["success"] = (proc.returncode == 0)
+                        result["output"] = proc.stdout
+                        result["error"] = proc.stderr
+                        
+                        # Special handling for checkout -b: if it fails, try to checkout existing branch
+                        if idx == 0 and not result["success"]:
+                            # Check both stderr and stdout for "already exists" message (case-insensitive)
+                            error_text = (result["error"] + " " + result["output"]).lower()
+                            if "already exists" in error_text or "fatal: a branch named" in error_text:
+                                # Check if we're already on this branch
+                                current_branch = subprocess.run(
+                                    ["git", "branch", "--show-current"],
+                                    cwd=PROJECT_ROOT,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=30
+                                )
+                                current_branch_name = current_branch.stdout.strip() if current_branch.returncode == 0 else ""
+                                
+                                if current_branch_name == campaign_id_timestamp:
+                                    # Already on the correct branch, treat as success
+                                    result["success"] = True
+                                    result["output"] = f"Already on branch '{campaign_id_timestamp}'"
+                                    result["error"] = ""
+                                    result["command"] = f"git checkout -b {campaign_id_timestamp} (already on branch)"
+                                else:
+                                    # Try to checkout the existing branch instead
+                                    checkout_existing = subprocess.run(
+                                        ["git", "checkout", campaign_id_timestamp],
+                                        cwd=PROJECT_ROOT,
+                                        capture_output=True,
+                                        text=True,
+                                        timeout=30
+                                    )
+                                    if checkout_existing.returncode == 0:
+                                        result["success"] = True
+                                        result["output"] = checkout_existing.stdout.strip() or f"Switched to existing branch '{campaign_id_timestamp}'"
+                                        result["error"] = ""
+                                        result["command"] = f"git checkout {campaign_id_timestamp} (branch already existed)"
+                                    else:
+                                        # Checkout failed - might be due to uncommitted changes
+                                        checkout_error = checkout_existing.stderr.strip().lower()
+                                        if "local changes" in checkout_error or "would be overwritten" in checkout_error:
+                                            # Stash changes, checkout branch, then pop stash
+                                            stash_result = subprocess.run(
+                                                ["git", "stash"],
+                                                cwd=PROJECT_ROOT,
+                                                capture_output=True,
+                                                text=True,
+                                                timeout=30
+                                            )
+                                            if stash_result.returncode == 0:
+                                                # Now try checkout again
+                                                checkout_after_stash = subprocess.run(
+                                                    ["git", "checkout", campaign_id_timestamp],
+                                                    cwd=PROJECT_ROOT,
+                                                    capture_output=True,
+                                                    text=True,
+                                                    timeout=30
+                                                )
+                                                if checkout_after_stash.returncode == 0:
+                                                    # Pop the stash to restore changes
+                                                    pop_result = subprocess.run(
+                                                        ["git", "stash", "pop"],
+                                                        cwd=PROJECT_ROOT,
+                                                        capture_output=True,
+                                                        text=True,
+                                                        timeout=30
+                                                    )
+                                                    result["success"] = True
+                                                    result["output"] = f"Stashed changes, switched to branch '{campaign_id_timestamp}', and restored changes"
+                                                    result["error"] = ""
+                                                    result["command"] = f"git checkout {campaign_id_timestamp} (stashed and restored changes)"
+                                                else:
+                                                    result["error"] = f"Stashed changes but checkout still failed: {checkout_after_stash.stderr.strip()}"
+                                            else:
+                                                result["error"] = f"Failed to stash changes: {stash_result.stderr.strip()}"
+                                        else:
+                                            result["error"] = f"Branch exists but checkout failed: {checkout_existing.stderr.strip()}"
+                        
+                        results.append(result)
+                        # If any command fails, stop execution
+                        if not result["success"]:
+                            break
+                    except subprocess.TimeoutExpired:
+                        result["error"] = "Command timed out after 30 seconds"
+                        results.append(result)
+                        break
+                    except Exception as e:
+                        result["error"] = str(e)
+                        results.append(result)
+                        break
+                
+                self.send_response(200)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True, "results": results}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
             return
 
         if parsed.path == "/api/shutdown":
