@@ -15,7 +15,7 @@ def test_generate_reports_handles_internal_error(tmp_path, caplog, monkeypatch):
     monkeypatch.setattr(gen, "_create_consolidated_status", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")))
     # Should not raise; error is logged
     gen.generate_reports(results=[], brief={}, output_dir=tmp_path)
-    assert any("Failed to generate status.json" in r.message for r in caplog.records)
+    assert any("Failed to generate campaign_generated.json" in r.message for r in caplog.records)
 
 
 def test_create_generation_report_includes_error_product():
@@ -36,7 +36,7 @@ def test_report_generator_main_smoke():
     result = subprocess.run([sys.executable, "-m", "src.report_generator"], capture_output=True, text=True)
     # It should exit successfully and print success message
     assert result.returncode == 0
-    assert "Test status.json generated" in (result.stdout + result.stderr)
+    assert "Test campaign_generated.json generated" in (result.stdout + result.stderr)
 
 def test_report_generator_main_inprocess(tmp_path, monkeypatch):
     # Execute the module's __main__ in-process so coverage captures it

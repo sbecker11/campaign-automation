@@ -9,6 +9,8 @@ from urllib.parse import urlparse, parse_qs
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Serve the entire project root (one level up from scripts/)
 PROJECT_ROOT = os.path.dirname(ROOT_DIR)
+# Outputs repository (separate repo for campaign outputs)
+OUTPUTS_REPO_ROOT = os.path.join(PROJECT_ROOT, "..", "campaign-automation-outputs")
 
 # Global server reference for shutdown
 _server_instance = None
@@ -39,13 +41,12 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 return
 
             campaign_id = payload.get("campaignId")
-            hidden_paths = payload.get("hidden", [])
             images = payload.get("images", None)
-            if not campaign_id or not isinstance(hidden_paths, list):
+            if not campaign_id:
                 self.send_response(400)
                 self._send_cors_headers()
                 self.end_headers()
-                self.wfile.write(b'{"error":"campaignId and hidden[] required"}')
+                self.wfile.write(b'{"error":"campaignId required"}')
                 return
 
             # campaign_generated.json path
@@ -61,8 +62,6 @@ class RefineHandler(SimpleHTTPRequestHandler):
                         status = json.load(f) or {}
                 except Exception:
                     status = {}
-            # Store hidden paths
-            status["hidden"] = hidden_paths
             # If images array provided, update hidden flags and comments on matching paths; preserve warnings and other fields
             if images is not None:
                 # Build map from path to payload (hidden/comment)
@@ -75,20 +74,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                     if isinstance(img, dict) and img.get("path")
                 }
                 
-                # Update flat image_variants array (for backward compatibility)
-                existing_image_variants = status.get("image_variants")
-                if isinstance(existing_image_variants, list):
-                    for img in existing_image_variants:
-                        p = img.get("path")
-                        if p in by_path:
-                            # Always update hidden status (explicitly set boolean)
-                            img["hidden"] = bool(by_path[p]["hidden"])
-                            # Always update comment (even if empty string)
-                            img["comment"] = by_path[p]["comment"]
-                else:
-                    status["image_variants"] = images
-                
-                # Update image_variants within products array (new consolidated structure)
+                # Update image_variants within products array
                 products = status.get("products", [])
                 if isinstance(products, list):
                     for product in products:
@@ -138,23 +124,33 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b'{"error":"campaignIdTimestamp required"}')
                 return
 
-            # Save the original branch before starting
-            original_branch_proc = subprocess.run(
-                ["git", "branch", "--show-current"],
-                cwd=PROJECT_ROOT,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            original_branch = original_branch_proc.stdout.strip() if original_branch_proc.returncode == 0 else "main"
+            # Check if outputs repo exists
+            if not os.path.isdir(OUTPUTS_REPO_ROOT):
+                self.send_response(500)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"Outputs repository not found at {OUTPUTS_REPO_ROOT}"}).encode("utf-8"))
+                return
+
+            # Campaign path in outputs repo
+            campaign_path = os.path.join("outputs", "campaigns", campaign_id_timestamp)
+            full_campaign_path = os.path.join(OUTPUTS_REPO_ROOT, campaign_path)
             
-            # Execute git commands in sequence
+            # Check if campaign directory exists
+            if not os.path.isdir(full_campaign_path):
+                self.send_response(404)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"Campaign directory not found: {campaign_path}"}).encode("utf-8"))
+                return
+
+            # Execute git commands in sequence (in outputs repo)
             results = []
             commands = [
                 ["git", "checkout", "-b", campaign_id_timestamp],
-                ["git", "add", "."],
-                ["git", "commit", "-m", f"saving {campaign_id_timestamp} to github"],
-                ["git", "push"]
+                ["git", "add", campaign_path],
+                ["git", "commit", "-m", f"Add campaign: {campaign_id_timestamp}"],
+                ["git", "push", "--set-upstream", "origin", campaign_id_timestamp]
             ]
             
             try:
@@ -168,7 +164,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                     try:
                         proc = subprocess.run(
                             cmd,
-                            cwd=PROJECT_ROOT,
+                            cwd=OUTPUTS_REPO_ROOT,
                             capture_output=True,
                             text=True,
                             timeout=30
@@ -185,7 +181,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                 # Check if we're already on this branch
                                 current_branch = subprocess.run(
                                     ["git", "branch", "--show-current"],
-                                    cwd=PROJECT_ROOT,
+                                    cwd=OUTPUTS_REPO_ROOT,
                                     capture_output=True,
                                     text=True,
                                     timeout=30
@@ -202,7 +198,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                     # Try to checkout the existing branch instead
                                     checkout_existing = subprocess.run(
                                         ["git", "checkout", campaign_id_timestamp],
-                                        cwd=PROJECT_ROOT,
+                                        cwd=OUTPUTS_REPO_ROOT,
                                         capture_output=True,
                                         text=True,
                                         timeout=30
@@ -219,7 +215,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                             # Stash changes, checkout branch, then pop stash
                                             stash_result = subprocess.run(
                                                 ["git", "stash"],
-                                                cwd=PROJECT_ROOT,
+                                                cwd=OUTPUTS_REPO_ROOT,
                                                 capture_output=True,
                                                 text=True,
                                                 timeout=30
@@ -228,7 +224,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                                 # Now try checkout again
                                                 checkout_after_stash = subprocess.run(
                                                     ["git", "checkout", campaign_id_timestamp],
-                                                    cwd=PROJECT_ROOT,
+                                                    cwd=OUTPUTS_REPO_ROOT,
                                                     capture_output=True,
                                                     text=True,
                                                     timeout=30
@@ -237,7 +233,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                                     # Pop the stash to restore changes
                                                     pop_result = subprocess.run(
                                                         ["git", "stash", "pop"],
-                                                        cwd=PROJECT_ROOT,
+                                                        cwd=OUTPUTS_REPO_ROOT,
                                                         capture_output=True,
                                                         text=True,
                                                         timeout=30
@@ -266,86 +262,11 @@ class RefineHandler(SimpleHTTPRequestHandler):
                         results.append(result)
                         break
                 
-                # Return to original branch
-                if original_branch:
-                    checkout_original = subprocess.run(
-                        ["git", "checkout", original_branch],
-                        cwd=PROJECT_ROOT,
-                        capture_output=True,
-                        text=True,
-                        timeout=30
-                    )
-                    if checkout_original.returncode == 0:
-                        results.append({
-                            "command": f"git checkout {original_branch} (returned to original branch)",
-                            "success": True,
-                            "output": checkout_original.stdout.strip() or f"Switched back to branch '{original_branch}'",
-                            "error": ""
-                        })
-                    else:
-                        # If checkout fails, try to stash and retry
-                        stash_result = subprocess.run(
-                            ["git", "stash"],
-                            cwd=PROJECT_ROOT,
-                            capture_output=True,
-                            text=True,
-                            timeout=30
-                        )
-                        if stash_result.returncode == 0:
-                            checkout_after_stash = subprocess.run(
-                                ["git", "checkout", original_branch],
-                                cwd=PROJECT_ROOT,
-                                capture_output=True,
-                                text=True,
-                                timeout=30
-                            )
-                            if checkout_after_stash.returncode == 0:
-                                # Pop stash to restore changes
-                                subprocess.run(
-                                    ["git", "stash", "pop"],
-                                    cwd=PROJECT_ROOT,
-                                    capture_output=True,
-                                    text=True,
-                                    timeout=30
-                                )
-                                results.append({
-                                    "command": f"git checkout {original_branch} (returned to original branch)",
-                                    "success": True,
-                                    "output": f"Stashed, switched back to '{original_branch}', and restored changes",
-                                    "error": ""
-                                })
-                            else:
-                                results.append({
-                                    "command": f"git checkout {original_branch} (failed to return)",
-                                    "success": False,
-                                    "output": "",
-                                    "error": f"Failed to return to original branch: {checkout_after_stash.stderr.strip()}"
-                                })
-                        else:
-                            results.append({
-                                "command": f"git checkout {original_branch} (failed to return)",
-                                "success": False,
-                                "output": "",
-                                "error": f"Failed to return to original branch: {checkout_original.stderr.strip()}"
-                            })
-                
                 self.send_response(200)
                 self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({"ok": True, "results": results}).encode("utf-8"))
             except Exception as e:
-                # Try to return to original branch even on exception
-                if original_branch:
-                    try:
-                        subprocess.run(
-                            ["git", "checkout", original_branch],
-                            cwd=PROJECT_ROOT,
-                            capture_output=True,
-                            text=True,
-                            timeout=30
-                        )
-                    except:
-                        pass
                 self.send_response(500)
                 self._send_cors_headers()
                 self.end_headers()

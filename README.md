@@ -40,7 +40,15 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### 3. Configure API Key
+### 3. Install Pre-commit Hook (Recommended)
+```bash
+# Install the pre-commit hook to prevent accidentally committing output files
+./scripts/install_pre_commit_hook.sh
+```
+
+**Note:** This hook prevents committing any files in the `outputs/` directory to the main code repository. Output files should be committed to the separate `campaign-automation-outputs` repository instead.
+
+### 4. Configure API Key
 ```bash
 # Copy .env file from your workspace (if you have one)
 # Or create a new one:
@@ -192,14 +200,39 @@ du -sh outputs/campaigns/*/
 
 ---
 
+## Output Files and Repository Structure
+
+**Important:** Campaign output files (YAML, JSON, PNG) are stored in a **separate repository** (`campaign-automation-outputs`) to keep the main code repository lightweight.
+
+### Preventing Accidental Commits
+
+The repository includes a **pre-commit hook** that prevents committing any files in the `outputs/` directory to the main code branch. This ensures:
+
+- ✅ Code changes stay in the main repository
+- ✅ Output files are committed to the separate outputs repository
+- ✅ No accidental commits of large binary/image files
+
+**If you try to commit files in `outputs/`, the commit will be blocked with an error message.**
+
+### Committing Outputs
+
+To commit campaign outputs, use one of these methods:
+
+1. **Via the Refine UI**: Use the "📦 Commit Campaign" button in the refine interface
+2. **Directly in outputs repo**: Navigate to the `campaign-automation-outputs` repository and commit there
+
+The pre-commit hook will guide you if you accidentally try to commit outputs to the main repo.
+
+---
+
 ## Project Structure
 ```
 campaign-automation/
 ├── inputs/
 │   └── campaigns/                      # Campaign YAML files
 │       └── example_campaign.yaml       # Example campaign configuration
-├── outputs/
-│   └── campaigns/                      # Generated campaign outputs
+├── outputs/                            # Symlink to campaign-automation-outputs repository
+│   └── campaigns/                      # Generated campaign outputs (separate repo)
 │       └── summer_2024/
 │           ├── products/               # Product images by aspect ratio
 │           │   ├── sunscreen_spf50/

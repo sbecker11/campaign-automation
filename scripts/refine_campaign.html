@@ -89,9 +89,12 @@
   <div id="commitModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Git Commit Results</h2>
+        <h2>Commit Campaign Outputs</h2>
         <span class="close" id="closeModal">&times;</span>
       </div>
+      <p style="margin-bottom: 12px; font-size: 13px; color: #666; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+        <strong>Note:</strong> Only the campaign outputs (images and JSON files) will be committed to the <code>campaign-automation-outputs</code> repository on branch <code id="commitBranchName"></code>. Code changes are not included.
+      </p>
       <div id="commitResults"></div>
     </div>
   </div>
@@ -246,29 +249,16 @@
           const marked = new Set();
           const warnByPath = new Map();
           const commentByPath = new Map();
-          // Load from flat image_variants array first
-          if (Array.isArray(js.image_variants)) {
-            js.image_variants.forEach(i => {
-              if (i && i.path) {
-                // Check hidden status (explicitly check for true/false)
-                if (i.hidden === true) marked.add(i.path);
-                else if (i.hidden === false) marked.delete(i.path);
-                if (i.warnings) warnByPath.set(i.path, i.warnings);
-                if (typeof i.comment === 'string') commentByPath.set(i.path, i.comment);
-              }
-            });
-          }
-          // Also load from nested products[].image_variants[] array (overwrites flat if present)
+          // Load from nested products[].image_variants[] array
           if (Array.isArray(js.products)) {
             js.products.forEach(product => {
               if (Array.isArray(product.image_variants)) {
                 product.image_variants.forEach(i => {
                   if (i && i.path) {
-                    // Check hidden status (explicitly check for true/false, nested takes precedence)
+                    // Check hidden status (explicitly check for true/false)
                     if (i.hidden === true) marked.add(i.path);
-                    else if (i.hidden === false) marked.delete(i.path); // Explicitly remove if false
+                    else if (i.hidden === false) marked.delete(i.path);
                     if (i.warnings) warnByPath.set(i.path, i.warnings);
-                    // Nested comments take precedence over flat (overwrite if present)
                     // Include empty strings (user may have cleared a comment)
                     if (typeof i.comment === 'string') {
                       commentByPath.set(i.path, i.comment);
@@ -276,14 +266,6 @@
                   }
                 });
               }
-            });
-          }
-          // Also check top-level hidden array (legacy/backup) - only add paths that aren't explicitly false
-          if (Array.isArray(js.hidden)) {
-            js.hidden.forEach(p => {
-              // Only add if not explicitly set to false in the image_variants
-              // This is a backup for paths that might only be in the hidden array
-              marked.add(p);
             });
           }
           cards.forEach(c => {
@@ -326,12 +308,10 @@
     });
     document.getElementById('saveBtn').addEventListener('click', async () => {
       try {
-        const hiddenPaths = [];
         const imagesPayload = [];
         cards.forEach(c => {
           const path = c.dataset.path;
           const hidden = c.classList.contains('marked');
-          if (hidden) hiddenPaths.push(path);
           const commentEl = c.querySelector('.comment-box');
           let comment = '';
           if (commentEl && typeof commentEl.value === 'string') {
@@ -344,7 +324,6 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             campaignId: campaign,
-            hidden: hiddenPaths,
             images: imagesPayload
           })
         });
@@ -374,7 +353,8 @@
       
       // Show modal with loading state
       commitModal.style.display = 'block';
-      commitResults.innerHTML = '<div class="loading">Executing git commands...</div>';
+      document.getElementById('commitBranchName').textContent = campaignIdTimestamp;
+      commitResults.innerHTML = '<div class="loading">Committing campaign outputs to outputs repository...</div>';
       
       try {
         const resp = await fetch('/api/commit_campaign', {

@@ -108,7 +108,7 @@ class ReportGenerator:
         for result in results:
             if result.get('status') == 'success':
                 for validation in result.get('validations', []):
-                    campaign_val = validation.get('campaign_validation') or validation.get('brand_validation') or {}
+                    campaign_val = validation.get('campaign_validation') or {}
                     if campaign_val:
                         total_checks += 1
                         if campaign_val.get('overall_compliant', True):
@@ -118,8 +118,6 @@ class ReportGenerator:
         
         # Build products array with per-image records
         products = []
-        all_images = []
-        hidden_paths = []
         
         for result in results:
             product_id = result.get('product_id')
@@ -141,8 +139,7 @@ class ReportGenerator:
                 for validation in result.get('validations', []):
                     image_path = validation.get('variant') or ''
                     ratio = validation.get('ratio')
-                    # Support both campaign_validation and brand_validation (legacy)
-                    campaign_validation = validation.get('campaign_validation') or validation.get('brand_validation') or {}
+                    campaign_validation = validation.get('campaign_validation') or {}
                     content_check = validation.get('content_check') or {}
                     
                     # Ensure campaign_validation.image_path matches the path field
@@ -169,10 +166,7 @@ class ReportGenerator:
                     }
                     is_hidden = any(warnings.values())
                     
-                    if is_hidden:
-                        hidden_paths.append(image_path)
-                    
-                    # Create image record with all data from both reports
+                    # Create image record with all data
                     image_record = {
                         'path': image_path,
                         'ratio': ratio,
@@ -184,7 +178,6 @@ class ReportGenerator:
                     }
                     
                     product_images.append(image_record)
-                    all_images.append(image_record)
                 
                 product_data['image_variants'] = product_images
             else:
@@ -232,7 +225,6 @@ class ReportGenerator:
             'campaign_id': brief.get('campaign_id'),
             'campaign_name': brief.get('campaign_name'),
             'generated_at': datetime.now().isoformat(),
-            'timestamp': datetime.now().isoformat(),  # Legacy field
             'campaign_config': campaign_config,
             'summary': {
                 'total_products': len(results),
@@ -244,10 +236,7 @@ class ReportGenerator:
                 'failed_checks': total_checks - passed_checks,
                 'compliance_rate': f"{compliance_rate:.1f}%"
             },
-            'products': products,
-            # Legacy fields for backward compatibility
-            'image_variants': all_images,  # Flat list of all image variants (for refine UI)
-            'hidden': hidden_paths  # Array of hidden image paths
+            'products': products
         }
         
         return status_data
@@ -263,8 +252,8 @@ class ReportGenerator:
                 for validation in result.get('validations', []):
                     all_validations.append(validation)
                     
-                    # Count checks (supports both legacy 'brand_validation' and 'campaign_validation')
-                    campaign_val = validation.get('campaign_validation') or validation.get('brand_validation') or {}
+                    # Count checks
+                    campaign_val = validation.get('campaign_validation') or {}
                     if campaign_val:
                         total_checks += 1
                         if campaign_val.get('overall_compliant', True):

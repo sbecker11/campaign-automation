@@ -31,17 +31,23 @@ def successful_results():
                 {
                     'variant': '/path/to/sunscreen_1x1.png',
                     'ratio': '1:1',
-                    'brand_validation': {
+                    'campaign_validation': {
                         'overall_compliant': True,
                         'checks': {}
+                    },
+                    'content_check': {
+                        'passed': True
                     }
                 },
                 {
                     'variant': '/path/to/sunscreen_9x16.png',
                     'ratio': '9:16',
-                    'brand_validation': {
+                    'campaign_validation': {
                         'overall_compliant': True,
                         'checks': {}
+                    },
+                    'content_check': {
+                        'passed': True
                     }
                 }
             ]
