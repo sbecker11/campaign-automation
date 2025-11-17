@@ -45,6 +45,7 @@
     <h1 id="campaignTitle" style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: #333; width: 100%;">Refine Campaign</h1>
     <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; width:100%;">
       <button class="btn save" id="saveBtn">💾 Save Campaign</button>
+      <button class="btn" id="commitBtn" style="background:#28a745; border-color:#28a745; color:#fff;">📦 Commit Campaign</button>
       <button class="btn" id="exitBtn" style="background:#dc3545; border-color:#dc3545; color:#fff;">🚪 Exit</button>
       <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <label>Product:
@@ -328,6 +329,21 @@
         if (resp.ok) alert('Campaign Saved');
         else alert('Save failed: HTTP ' + resp.status);
       } catch (e) { alert('Save failed: ' + e); }
+    });
+    document.getElementById('commitBtn').addEventListener('click', () => {
+      if (!campaign) {
+        alert('No campaign selected');
+        return;
+      }
+      const campaignIdTimestamp = campaign;
+      const gitCommands = `git checkout -b ${campaignIdTimestamp}
+
+git add .
+
+git commit -m "saving ${campaignIdTimestamp} to github"
+
+git push`;
+      alert(gitCommands);
     });
     document.getElementById('exitBtn').addEventListener('click', async () => {
       if (confirm('Exit and close the server? This will close this window.')) {
