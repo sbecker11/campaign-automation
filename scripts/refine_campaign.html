@@ -38,6 +38,19 @@
     .btn { cursor:pointer; padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; background:#fff; }
     .btn.hidden { border-color:#f00; color:#f00; }
     .btn.save { background:#4a9eff; border-color:#4a9eff; color:#fff; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 700px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-header h2 { margin: 0; font-size: 18px; }
+    .close { cursor: pointer; font-size: 24px; font-weight: bold; color: #999; }
+    .close:hover { color: #000; }
+    .command-result { margin-bottom: 16px; padding: 12px; border-radius: 4px; border-left: 4px solid #ccc; }
+    .command-result.success { background: #f0f9ff; border-left-color: #28a745; }
+    .command-result.error { background: #fff5f5; border-left-color: #dc3545; }
+    .command-result .command { font-family: Menlo, Monaco, monospace; font-size: 13px; font-weight: bold; margin-bottom: 8px; }
+    .command-result .output { font-family: Menlo, Monaco, monospace; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; color: #333; }
+    .command-result .error-text { font-family: Menlo, Monaco, monospace; font-size: 12px; white-space: pre-wrap; word-wrap: break-word; color: #dc3545; margin-top: 8px; }
+    .loading { text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
@@ -73,6 +86,15 @@
     </div>
   </header>
   <main class="grid" id="grid"></main>
+  <div id="commitModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Git Commit Results</h2>
+        <span class="close" id="closeModal">&times;</span>
+      </div>
+      <div id="commitResults"></div>
+    </div>
+  </div>
   <script>
     // Expect campaign parameter ?campaign=<id[/timestamp]>; if missing, fetch latest from server
     const params = new URLSearchParams(location.search);
@@ -330,21 +352,87 @@
         else alert('Save failed: HTTP ' + resp.status);
       } catch (e) { alert('Save failed: ' + e); }
     });
-    document.getElementById('commitBtn').addEventListener('click', () => {
+    const commitModal = document.getElementById('commitModal');
+    const commitResults = document.getElementById('commitResults');
+    const closeModal = document.getElementById('closeModal');
+    
+    closeModal.addEventListener('click', () => {
+      commitModal.style.display = 'none';
+    });
+    window.addEventListener('click', (e) => {
+      if (e.target === commitModal) {
+        commitModal.style.display = 'none';
+      }
+    });
+    
+    document.getElementById('commitBtn').addEventListener('click', async () => {
       if (!campaign) {
         alert('No campaign selected');
         return;
       }
       const campaignIdTimestamp = campaign;
-      const gitCommands = `git checkout -b ${campaignIdTimestamp}
-
-git add .
-
-git commit -m "saving ${campaignIdTimestamp} to github"
-
-git push`;
-      alert(gitCommands);
+      
+      // Show modal with loading state
+      commitModal.style.display = 'block';
+      commitResults.innerHTML = '<div class="loading">Executing git commands...</div>';
+      
+      try {
+        const resp = await fetch('/api/commit_campaign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignIdTimestamp })
+        });
+        
+        const data = await resp.json();
+        
+        if (!resp.ok) {
+          commitResults.innerHTML = `<div class="command-result error">
+            <div class="command">Error</div>
+            <div class="error-text">${data.error || 'Unknown error'}</div>
+          </div>`;
+          return;
+        }
+        
+        // Display results
+        let html = '';
+        let allSuccess = true;
+        
+        if (data.results && Array.isArray(data.results)) {
+          data.results.forEach(result => {
+            if (!result.success) allSuccess = false;
+            const resultClass = result.success ? 'success' : 'error';
+            html += `<div class="command-result ${resultClass}">
+              <div class="command">${result.command}</div>`;
+            if (result.output) {
+              html += `<div class="output">${escapeHtml(result.output)}</div>`;
+            }
+            if (result.error) {
+              html += `<div class="error-text">${escapeHtml(result.error)}</div>`;
+            }
+            html += `</div>`;
+          });
+        }
+        
+        if (allSuccess && data.results && data.results.length > 0) {
+          html = `<div style="padding: 12px; background: #d4edda; border-radius: 4px; margin-bottom: 16px; color: #155724;">
+            ✅ All commands executed successfully!
+          </div>` + html;
+        }
+        
+        commitResults.innerHTML = html || '<div class="command-result error">No results returned</div>';
+      } catch (e) {
+        commitResults.innerHTML = `<div class="command-result error">
+          <div class="command">Error</div>
+          <div class="error-text">Failed to execute commands: ${escapeHtml(e.message)}</div>
+        </div>`;
+      }
     });
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
     document.getElementById('exitBtn').addEventListener('click', async () => {
       if (confirm('Exit and close the server? This will close this window.')) {
         try {
