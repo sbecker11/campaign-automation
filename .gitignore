@@ -42,3 +42,4 @@ Thumbs.db
 # Backup
 backup_*.tar.gz
 refactor_*.sh
+outputs/
