@@ -158,6 +158,14 @@ find outputs/campaigns/summer_2024 -name "*.png" | wc -l
 - ✅ Three aspect ratios per product
 - ✅ Brand colors present in images
 
+### Campaign Generation Flow
+
+The following diagram illustrates the complete campaign generation pipeline:
+
+![Campaign Generation Flow](docs/generate_campaign_flow.png)
+
+This flow shows how a campaign YAML file is processed through image generation, asset processing, validation, and reporting to produce the final campaign outputs.
+
 ---
 
 ## View All Outputs
