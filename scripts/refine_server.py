@@ -138,6 +138,16 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b'{"error":"campaignIdTimestamp required"}')
                 return
 
+            # Save the original branch before starting
+            original_branch_proc = subprocess.run(
+                ["git", "branch", "--show-current"],
+                cwd=PROJECT_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            original_branch = original_branch_proc.stdout.strip() if original_branch_proc.returncode == 0 else "main"
+            
             # Execute git commands in sequence
             results = []
             commands = [
@@ -149,7 +159,12 @@ class RefineHandler(SimpleHTTPRequestHandler):
             
             try:
                 for idx, cmd in enumerate(commands):
-                    result = {"command": " ".join(cmd), "success": False, "output": "", "error": ""}
+                    # Format command for display - add quotes around commit message
+                    if idx == 2 and len(cmd) >= 4 and cmd[2] == "-m":
+                        display_cmd = f"{cmd[0]} {cmd[1]} {cmd[2]} \"{cmd[3]}\""
+                    else:
+                        display_cmd = " ".join(cmd)
+                    result = {"command": display_cmd, "success": False, "output": "", "error": ""}
                     try:
                         proc = subprocess.run(
                             cmd,
@@ -251,11 +266,86 @@ class RefineHandler(SimpleHTTPRequestHandler):
                         results.append(result)
                         break
                 
+                # Return to original branch
+                if original_branch:
+                    checkout_original = subprocess.run(
+                        ["git", "checkout", original_branch],
+                        cwd=PROJECT_ROOT,
+                        capture_output=True,
+                        text=True,
+                        timeout=30
+                    )
+                    if checkout_original.returncode == 0:
+                        results.append({
+                            "command": f"git checkout {original_branch} (returned to original branch)",
+                            "success": True,
+                            "output": checkout_original.stdout.strip() or f"Switched back to branch '{original_branch}'",
+                            "error": ""
+                        })
+                    else:
+                        # If checkout fails, try to stash and retry
+                        stash_result = subprocess.run(
+                            ["git", "stash"],
+                            cwd=PROJECT_ROOT,
+                            capture_output=True,
+                            text=True,
+                            timeout=30
+                        )
+                        if stash_result.returncode == 0:
+                            checkout_after_stash = subprocess.run(
+                                ["git", "checkout", original_branch],
+                                cwd=PROJECT_ROOT,
+                                capture_output=True,
+                                text=True,
+                                timeout=30
+                            )
+                            if checkout_after_stash.returncode == 0:
+                                # Pop stash to restore changes
+                                subprocess.run(
+                                    ["git", "stash", "pop"],
+                                    cwd=PROJECT_ROOT,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=30
+                                )
+                                results.append({
+                                    "command": f"git checkout {original_branch} (returned to original branch)",
+                                    "success": True,
+                                    "output": f"Stashed, switched back to '{original_branch}', and restored changes",
+                                    "error": ""
+                                })
+                            else:
+                                results.append({
+                                    "command": f"git checkout {original_branch} (failed to return)",
+                                    "success": False,
+                                    "output": "",
+                                    "error": f"Failed to return to original branch: {checkout_after_stash.stderr.strip()}"
+                                })
+                        else:
+                            results.append({
+                                "command": f"git checkout {original_branch} (failed to return)",
+                                "success": False,
+                                "output": "",
+                                "error": f"Failed to return to original branch: {checkout_original.stderr.strip()}"
+                            })
+                
                 self.send_response(200)
                 self._send_cors_headers()
                 self.end_headers()
                 self.wfile.write(json.dumps({"ok": True, "results": results}).encode("utf-8"))
             except Exception as e:
+                # Try to return to original branch even on exception
+                if original_branch:
+                    try:
+                        subprocess.run(
+                            ["git", "checkout", original_branch],
+                            cwd=PROJECT_ROOT,
+                            capture_output=True,
+                            text=True,
+                            timeout=30
+                        )
+                    except:
+                        pass
                 self.send_response(500)
                 self._send_cors_headers()
                 self.end_headers()
