@@ -17,6 +17,23 @@ The refine campaign interface provides a visual way to review, manage, and commi
 
 ---
 
+## Demo Video
+
+Watch a complete walkthrough of the Campaign Automation Pipeline in action:
+
+**[📹 View Demo Video](https://github.com/sbecker11/campaign-automation/blob/main/DEMO_MOVIE.mov)**
+
+*(Note: The video file is large (~588MB). Click the link above to view or download it from GitHub. Make sure the file has been committed and pushed to the repository.)*
+
+The demo video demonstrates:
+- Setting up the project and configuring your API key
+- Reviewing campaign configuration files
+- Generating campaign instances with AI-powered image creation
+- Using the refine UI to review and manage campaign assets
+- Running tests and viewing coverage reports
+
+---
+
 ## Getting Started
 
 ### Prerequisites
