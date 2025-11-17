@@ -102,9 +102,9 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     CAMPAIGN_OUTPUT_DIR=$(ls -td "outputs/campaigns/${CAMPAIGN_ID}"_* 2>/dev/null | head -n 1)
     echo "   Campaign ID: $CAMPAIGN_ID"
     echo "   Latest run dir: ${CAMPAIGN_OUTPUT_DIR:-'(not found)'}"
-    echo ""
-    echo "✅ Campaign generation complete for: $CAMPAIGN_ID"
-    echo "   Next: ./scripts/refine_campaign.sh"
+        echo ""
+        echo "✅ Campaign generation complete for: $CAMPAIGN_ID"
+        echo "   Next: ./scripts/refine_campaign.sh"
     exit 0
 fi
 
@@ -160,8 +160,8 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     # Always run timestamped
     python -m src.pipeline --campaign "$CAMPAIGN_FILE" --timestamp
 
-    echo ""
+        echo ""
     echo "✅ Campaign generation complete for Campaign ID: $CAMPAIGN_ID"
-    echo "   Next: ./scripts/refine_campaign.sh"
+        echo "   Next: ./scripts/refine_campaign.sh"
     exit 0
 fi

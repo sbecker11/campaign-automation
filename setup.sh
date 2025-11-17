@@ -74,7 +74,7 @@ if ! command -v python3 &> /dev/null; then
         echo "  Visit: https://www.python.org/downloads/"
         echo "  Or run: sudo apt install python3 python3-pip python3-venv"
     fi
-    echo ""
+echo ""
     echo "After installing Python 3, close and reopen your terminal, then run this script again."
     exit 1
 fi
@@ -154,13 +154,13 @@ if [ ! -f ".env" ]; then
             echo ""
             echo "Skipped API key setup. Create a .env file later with:"
             echo "  echo 'OPENAI_API_KEY=sk-your-key' > .env"
-        fi
+fi
         echo ""
     fi
-    echo ""
+echo ""
 else
     echo "API key file (.env) already exists. Skipping API key setup."
-    echo ""
+echo ""
 fi
 
 echo "Next steps:"
