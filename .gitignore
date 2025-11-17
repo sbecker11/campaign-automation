@@ -18,8 +18,8 @@ ENV/
 .env
 *.log
 
-# Outputs
-# outputs/  # Now tracked in git
+# Outputs - moved to separate repository (campaign-automation-outputs)
+outputs/
 temp/
 # *.png  # Allow PNG files in outputs
 # *.jpg  # Allow JPG files in outputs
@@ -43,3 +43,5 @@ Thumbs.db
 backup_*.tar.gz
 refactor_*.sh
 outputs/
+# Symlink to outputs repo (local path)
+outputs
