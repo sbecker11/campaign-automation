@@ -1,0 +1,190 @@
+{
+  "campaign_id": "summer_2024",
+  "campaign_name": "Summer Adventure Collection",
+  "generated_at": "2025-11-15T18:15:09.036321",
+  "summary": {
+    "total_variants_checked": 6,
+    "passed": 6,
+    "failed": 0,
+    "compliance_rate": "100.0%"
+  },
+  "brand_guidelines": {
+    "brand_colors": [
+      "#FF6B35",
+      "#004E89",
+      "#FFFFFF"
+    ],
+    "logo_required": true,
+    "logo_path": "assets/spexture.com-logo.png"
+  },
+  "validations": [
+    {
+      "variant": "outputs/campaigns/summer_2024_20251115_181354/products/sunscreen_spf50/1x1/sunscreen_spf50_1x1.png",
+      "ratio": "1:1",
+      "campaign_validation": {
+        "image_path": "outputs/campaigns/summer_2024_20251115_181354/products/sunscreen_spf50/1x1/sunscreen_spf50_1x1.png",
+        "overall_compliant": true,
+        "checks": {
+          "logo_detection": {
+            "detected": true,
+            "confidence": 0.6834073662757874,
+            "threshold": 0.5,
+            "expected_scale": 0.2592
+          },
+          "color_validation": {
+            "colors_present": true,
+            "matches_found": 1
+          },
+          "image_quality": {
+            "quality_score": 0.78125
+          }
+        }
+      },
+      "content_check": {
+        "passed": true,
+        "issues": [],
+        "issues_count": 0
+      }
+    },
+    {
+      "variant": "outputs/campaigns/summer_2024_20251115_181354/products/sunscreen_spf50/9x16/sunscreen_spf50_9x16.png",
+      "ratio": "9:16",
+      "campaign_validation": {
+        "image_path": "outputs/campaigns/summer_2024_20251115_181354/products/sunscreen_spf50/9x16/sunscreen_spf50_9x16.png",
+        "overall_compliant": true,
+        "checks": {
+          "logo_detection": {
+            "detected": true,
+            "confidence": 0.6799625754356384,
+            "threshold": 0.5,
+            "expected_scale": 0.2592
+          },
+          "color_validation": {
+            "colors_present": true,
+            "matches_found": 1
+          },
+          "image_quality": {
+            "quality_score": 0.9397501022238081
+          }
+        }
+      },
+      "content_check": {
+        "passed": true,
+        "issues": [],
+        "issues_count": 0
+      }
+    },
+    {
+      "variant": "outputs/campaigns/summer_2024_20251115_181354/products/sunscreen_spf50/16x9/sunscreen_spf50_16x9.png",
+      "ratio": "16:9",
+      "campaign_validation": {
+        "image_path": "outputs/campaigns/summer_2024_20251115_181354/products/sunscreen_spf50/16x9/sunscreen_spf50_16x9.png",
+        "overall_compliant": true,
+        "checks": {
+          "logo_detection": {
+            "detected": true,
+            "confidence": 0.8467377424240112,
+            "threshold": 0.5,
+            "expected_scale": 0.4608
+          },
+          "color_validation": {
+            "colors_present": false,
+            "matches_found": 0
+          },
+          "image_quality": {
+            "quality_score": 0.8519637739660353
+          }
+        }
+      },
+      "content_check": {
+        "passed": true,
+        "issues": [],
+        "issues_count": 0
+      }
+    },
+    {
+      "variant": "outputs/campaigns/summer_2024_20251115_181354/products/beach_towel/1x1/beach_towel_1x1.png",
+      "ratio": "1:1",
+      "campaign_validation": {
+        "image_path": "outputs/campaigns/summer_2024_20251115_181354/products/beach_towel/1x1/beach_towel_1x1.png",
+        "overall_compliant": true,
+        "checks": {
+          "logo_detection": {
+            "detected": true,
+            "confidence": 0.676557183265686,
+            "threshold": 0.5,
+            "expected_scale": 0.2592
+          },
+          "color_validation": {
+            "colors_present": true,
+            "matches_found": 1
+          },
+          "image_quality": {
+            "quality_score": 0.78125
+          }
+        }
+      },
+      "content_check": {
+        "passed": true,
+        "issues": [],
+        "issues_count": 0
+      }
+    },
+    {
+      "variant": "outputs/campaigns/summer_2024_20251115_181354/products/beach_towel/9x16/beach_towel_9x16.png",
+      "ratio": "9:16",
+      "campaign_validation": {
+        "image_path": "outputs/campaigns/summer_2024_20251115_181354/products/beach_towel/9x16/beach_towel_9x16.png",
+        "overall_compliant": true,
+        "checks": {
+          "logo_detection": {
+            "detected": true,
+            "confidence": 0.6619216799736023,
+            "threshold": 0.5,
+            "expected_scale": 0.2592
+          },
+          "color_validation": {
+            "colors_present": true,
+            "matches_found": 1
+          },
+          "image_quality": {
+            "quality_score": 0.9137647064771799
+          }
+        }
+      },
+      "content_check": {
+        "passed": true,
+        "issues": [],
+        "issues_count": 0
+      }
+    },
+    {
+      "variant": "outputs/campaigns/summer_2024_20251115_181354/products/beach_towel/16x9/beach_towel_16x9.png",
+      "ratio": "16:9",
+      "campaign_validation": {
+        "image_path": "outputs/campaigns/summer_2024_20251115_181354/products/beach_towel/16x9/beach_towel_16x9.png",
+        "overall_compliant": true,
+        "checks": {
+          "logo_detection": {
+            "detected": true,
+            "confidence": 0.5237688422203064,
+            "threshold": 0.5,
+            "expected_scale": 0.4608
+          },
+          "color_validation": {
+            "colors_present": true,
+            "matches_found": 1
+          },
+          "image_quality": {
+            "quality_score": 0.7883448402451475
+          }
+        }
+      },
+      "content_check": {
+        "passed": true,
+        "issues": [],
+        "issues_count": 0
+      }
+    }
+  ]
+}

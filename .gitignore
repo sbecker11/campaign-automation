@@ -19,11 +19,11 @@ ENV/
 *.log
 
 # Outputs
-outputs/
+# outputs/  # Now tracked in git
 temp/
-*.png
-*.jpg
-*.jpeg
+# *.png  # Allow PNG files in outputs
+# *.jpg  # Allow JPG files in outputs
+# *.jpeg  # Allow JPEG files in outputs
 
 # Allow logo files in assets directory
 !assets/*.png

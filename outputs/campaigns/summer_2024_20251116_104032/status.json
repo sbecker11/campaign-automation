@@ -1,0 +1,35 @@
+{
+  "hidden": [],
+  "images": [
+    {
+      "path": "outputs/campaigns/summer_2024_20251116_104032/products/sunscreen_spf50/sunscreen_spf50_resized_1x1.png",
+      "hidden": false,
+      "comment": ""
+    },
+    {
+      "path": "outputs/campaigns/summer_2024_20251116_104032/products/sunscreen_spf50/sunscreen_spf50_resized_9x16.png",
+      "hidden": false,
+      "comment": ""
+    },
+    {
+      "path": "outputs/campaigns/summer_2024_20251116_104032/products/sunscreen_spf50/sunscreen_spf50_resized_16x9.png",
+      "hidden": false,
+      "comment": ""
+    },
+    {
+      "path": "outputs/campaigns/summer_2024_20251116_104032/products/beach_towel/beach_towel_resized_1x1.png",
+      "hidden": false,
+      "comment": ""
+    },
+    {
+      "path": "outputs/campaigns/summer_2024_20251116_104032/products/beach_towel/beach_towel_resized_9x16.png",
+      "hidden": false,
+      "comment": ""
+    },
+    {
+      "path": "outputs/campaigns/summer_2024_20251116_104032/products/beach_towel/beach_towel_resized_16x9.png",
+      "hidden": false,
+      "comment": ""
+    }
+  ]
+}

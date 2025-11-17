@@ -1,0 +1,37 @@
+{
+  "campaign_id": "summer_2024",
+  "campaign_name": "Summer Adventure Collection",
+  "generated_at": "2025-11-16T09:43:34.005764",
+  "summary": {
+    "total_products": 2,
+    "successful": 2,
+    "failed": 0,
+    "total_variants_generated": 6
+  },
+  "products": [
+    {
+      "product_id": "sunscreen_spf50",
+      "product_name": "SunGuard SPF 50+",
+      "status": "success",
+      "base_image": "temp/sunscreen_spf50_generated.png",
+      "variants": [
+        "outputs/campaigns/summer_2024_20251116_094242/products/sunscreen_spf50/1x1/sunscreen_spf50_1x1.png",
+        "outputs/campaigns/summer_2024_20251116_094242/products/sunscreen_spf50/9x16/sunscreen_spf50_9x16.png",
+        "outputs/campaigns/summer_2024_20251116_094242/products/sunscreen_spf50/16x9/sunscreen_spf50_16x9.png"
+      ],
+      "variant_count": 3
+    },
+    {
+      "product_id": "beach_towel",
+      "product_name": "Quick-Dry Beach Towel",
+      "status": "success",
+      "base_image": "temp/beach_towel_generated.png",
+      "variants": [
+        "outputs/campaigns/summer_2024_20251116_094242/products/beach_towel/1x1/beach_towel_1x1.png",
+        "outputs/campaigns/summer_2024_20251116_094242/products/beach_towel/9x16/beach_towel_9x16.png",
+        "outputs/campaigns/summer_2024_20251116_094242/products/beach_towel/16x9/beach_towel_16x9.png"
+      ],
+      "variant_count": 3
+    }
+  ]
+}
