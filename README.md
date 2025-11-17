@@ -9,10 +9,10 @@ AI-powered campaign asset generation for social ad campaigns using DALL-E 3, com
 The refine campaign interface provides a visual way to review, manage, and commit campaign outputs:
 
 <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0;">
-  <img src="docs/refine_ui_initial.png" alt="Refine UI - Initial view with all images visible" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
-  <img src="docs/refine_ui_hidden.png" alt="Refine UI - View with hidden image and comment" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
-  <img src="docs/refine_ui_filters.png" alt="Refine UI - Filtering by product" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
-  <img src="docs/refine_ui_commit.png" alt="Refine UI - Commit campaign modal" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/all-visible.png" alt="Refine UI - Initial view with all images visible" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/one-hidden.png" alt="Refine UI - View with hidden image and comment" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/image-variants.png" alt="Refine UI - Filtering by product" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
+  <img src="docs/commit-campaign-to-github.png" alt="Refine UI - Commit campaign modal" style="width: 33%; border: 1px solid #ddd; border-radius: 4px;">
 </div>
 
 ---
