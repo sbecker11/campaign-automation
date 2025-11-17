@@ -16,7 +16,7 @@ class CampaignParser:
             'campaign_id',
             'products',
             'target_market',
-            'campaign_message'
+            'campaign_tagline'
         ]
     
     def parse(self, campaign_path: str) -> Dict[str, Any]:
@@ -67,7 +67,7 @@ class CampaignParser:
             'campaign_name': campaign.get('campaign_id', 'Campaign'),
             'localization': {'languages': ['en']},
             'brand_guidelines': {'brand_colors': [], 'logo_required': False},
-            'content_safety': {'prohibited_words': [], 'require_disclaimer': False}
+            'content_safety': {'prohibited_words': []}
         }
         
         for key, value in defaults.items():

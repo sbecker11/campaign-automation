@@ -19,7 +19,7 @@ def test_parse_json_success_defaults(tmp_path):
         "campaign_id": "cid-json",
         "products": [{"product_id": "p1", "name": "Product"}],
         "target_market": "US",
-        "campaign_message": "Hello",
+        "campaign_tagline": "Hello",
         # Provide partial brand_guidelines to test nested defaults filling
         "brand_guidelines": {"brand_colors": []},
     }
@@ -48,7 +48,7 @@ def test_validate_products_empty(tmp_path):
         "campaign_id": "cid",
         "products": [],
         "target_market": "US",
-        "campaign_message": "Hi",
+        "campaign_tagline": "Hi",
     }
     p = tmp_path / "empty.yaml"
     p.write_text(yaml.dump(data))
@@ -62,7 +62,7 @@ def test_validate_product_missing_id(tmp_path):
         "campaign_id": "cid",
         "products": [{"name": "Product"}],
         "target_market": "US",
-        "campaign_message": "Hi",
+        "campaign_tagline": "Hi",
     }
     p = tmp_path / "missing_id.yaml"
     p.write_text(yaml.dump(data))
@@ -76,7 +76,7 @@ def test_validate_product_missing_name(tmp_path):
         "campaign_id": "cid",
         "products": [{"product_id": "p1"}],
         "target_market": "US",
-        "campaign_message": "Hi",
+        "campaign_tagline": "Hi",
     }
     p = tmp_path / "missing_name.yaml"
     p.write_text(yaml.dump(data))

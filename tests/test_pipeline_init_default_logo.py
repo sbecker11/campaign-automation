@@ -18,7 +18,7 @@ def test_pipeline_init_creates_default_logo(tmp_path):
          patch("src.pipeline.AssetProcessor"), \
          patch("src.pipeline.CampaignValidator"), \
          patch("src.pipeline.ContentChecker"), \
-         patch("src.pipeline.ReportGenerator"):
+         patch("src.pipeline.InstanceGenerator"):
         pipe = CampaignPipeline(assets_dir=assets_dir)
         # Default logo should be created during __init__
         assert logo_path.exists()

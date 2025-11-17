@@ -23,7 +23,7 @@ def _campaign_with_existing(existing_dir: Path | None):
     }
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")
@@ -58,7 +58,7 @@ def test_existing_assets_found(mock_parser, mock_img, mock_asset, mock_validator
     assert prod_dir.exists()
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")
@@ -77,7 +77,7 @@ def test_existing_assets_empty_dir_returns_error(mock_parser, mock_img, mock_ass
     assert "No images found" in result["error"]
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")

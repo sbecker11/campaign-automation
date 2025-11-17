@@ -1,17 +1,17 @@
 """
-Comprehensive tests for Report Generator.
+Comprehensive tests for Instance Generator.
 """
 
 import pytest
 import json
 from pathlib import Path
-from src.report_generator import ReportGenerator
+from src.instance_generator import InstanceGenerator
 
 
 @pytest.fixture
 def generator():
-    """Create a ReportGenerator instance."""
-    return ReportGenerator()
+    """Create an InstanceGenerator instance."""
+    return InstanceGenerator()
 
 
 @pytest.fixture
@@ -56,19 +56,19 @@ def successful_results():
 
 
 def test_generate_reports_creates_status_json(generator, successful_results, sample_brief_dict, temp_dir):
-    """Test that consolidated campaign_generated.json is created."""
+    """Test that consolidated campaign_instance.json is created."""
     generator.generate_reports(successful_results, sample_brief_dict, temp_dir)
     
-    status_file = temp_dir / 'campaign_generated.json'
+    status_file = temp_dir / 'campaign_instance.json'
     
     assert status_file.exists()
 
 
 def test_status_json_structure(generator, successful_results, sample_brief_dict, temp_dir):
-    """Test campaign_generated.json has correct structure with per-image records."""
+    """Test campaign_instance.json has correct structure with per-image records."""
     generator.generate_reports(successful_results, sample_brief_dict, temp_dir)
     
-    status_path = temp_dir / 'campaign_generated.json'
+    status_path = temp_dir / 'campaign_instance.json'
     status = json.loads(status_path.read_text())
     
     assert 'campaign_id' in status
@@ -89,10 +89,10 @@ def test_status_json_structure(generator, successful_results, sample_brief_dict,
 
 
 def test_status_json_compliance_calculations(generator, successful_results, sample_brief_dict, temp_dir):
-    """Test compliance rate calculations in campaign_generated.json."""
+    """Test compliance rate calculations in campaign_instance.json."""
     generator.generate_reports(successful_results, sample_brief_dict, temp_dir)
     
-    status_path = temp_dir / 'campaign_generated.json'
+    status_path = temp_dir / 'campaign_instance.json'
     status = json.loads(status_path.read_text())
     
     summary = status['summary']

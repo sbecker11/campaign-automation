@@ -10,7 +10,7 @@ flowchart TD
     FindYAML2 --> RunPipeline
     
     RunPipeline --> InitPipeline[CampaignPipeline.__init__<br/>Initialize components]
-    InitPipeline --> InitComponents[Initialize:<br/>- CampaignParser<br/>- ImageGenerator<br/>- AssetProcessor<br/>- CampaignValidator<br/>- ContentChecker<br/>- ReportGenerator]
+    InitPipeline --> InitComponents[Initialize:<br/>- CampaignParser<br/>- ImageGenerator<br/>- AssetProcessor<br/>- CampaignValidator<br/>- ContentChecker<br/>- InstanceGenerator]
     
     InitComponents --> PipelineRun[CampaignPipeline.run]
     
@@ -41,11 +41,11 @@ flowchart TD
     MoreAspects -->|No| MoreProducts{More<br/>products?}
     
     MoreProducts -->|Yes| ProcessProducts
-    MoreProducts -->|No| GenerateReports[ReportGenerator.generate_reports<br/>Consolidate all data]
+    MoreProducts -->|No| GenerateReports[InstanceGenerator.generate_reports<br/>Consolidate all data]
     
-    GenerateReports --> CreateJSON[Create campaign_generated.json<br/>with:<br/>- campaign_config<br/>- summary<br/>- products array<br/>- image_variants array]
+    GenerateReports --> CreateJSON[Create campaign_instance.json<br/>with:<br/>- campaign_config<br/>- summary<br/>- products array<br/>- image_variants array]
     
-    CreateJSON --> SaveJSON[Save to<br/>campaign_output_dir/campaign_generated.json]
+    CreateJSON --> SaveJSON[Save to<br/>campaign_output_dir/campaign_instance.json]
     
     SaveJSON --> End([Campaign Complete])
     
@@ -90,9 +90,9 @@ flowchart TD
 - Checks for prohibited words in campaign
 - Validates content compliance
 
-### ReportGenerator
+### InstanceGenerator
 - Consolidates all generation and validation data
-- Creates `campaign_generated.json` with:
+- Creates `campaign_instance.json` with:
   - Campaign configuration
   - Summary statistics
   - Per-product records with image variants
@@ -107,7 +107,6 @@ flowchart TD
    - Variants created for each aspect ratio
    - Each variant validated
 3. **Output**: 
-   - `campaign_generated.json` (consolidated report)
+   - `campaign_instance.json` (consolidated campaign instance)
    - `products/{product_id}/` directories with images
-   - Legacy `status.json` (for backward compatibility)
 

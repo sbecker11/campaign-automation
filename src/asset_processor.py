@@ -169,10 +169,10 @@ class AssetProcessor:
         return lines
     
     def _add_text_overlay(self, image: Image.Image, brief: Dict, aspect_ratio: str) -> Image.Image:
-        """Add campaign message as text overlay with proper text wrapping."""
-        message = brief.get('campaign_message', '')
+        """Add campaign tagline as text overlay with proper text wrapping."""
+        campaign_tagline = brief.get('campaign_tagline', '')
         
-        if not message:
+        if not campaign_tagline:
             return image
         
         width, height = image.size
@@ -186,7 +186,7 @@ class AssetProcessor:
         margin = 40
         max_text_width = width - (2 * margin)
         
-        lines = self._wrap_text(message, font, max_text_width)
+        lines = self._wrap_text(campaign_tagline, font, max_text_width)
         
         temp_draw = ImageDraw.Draw(Image.new('RGB', (1, 1)))
         line_height = temp_draw.textbbox((0, 0), "Ay", font=font)[3] - temp_draw.textbbox((0, 0), "Ay", font=font)[1]

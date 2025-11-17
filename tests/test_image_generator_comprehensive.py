@@ -52,7 +52,7 @@ def test_generate_image_success(mock_openai, mock_requests, temp_dir):
         
         brief = {
             'target_audience': 'outdoor enthusiasts',
-            'campaign_message': 'Stay protected',
+            'campaign_tagline': 'Stay protected',
             'brand_guidelines': {
                 'brand_colors': ['#FF6B35']
             }
@@ -81,7 +81,7 @@ def test_build_prompt_includes_product_info(mock_openai):
         
         brief = {
             'target_audience': 'beach goers',
-            'campaign_message': 'Ultimate protection',
+            'campaign_tagline': 'Ultimate protection',
             'brand_guidelines': {
                 'brand_colors': ['#FF6B35', '#004E89']
             }
@@ -116,8 +116,8 @@ def test_build_prompt_includes_brand_colors(mock_openai):
 
 
 @patch('src.image_generator.OpenAI')
-def test_build_prompt_includes_campaign_message(mock_openai):
-    """Test that prompt includes campaign message."""
+def test_build_prompt_includes_campaign_tagline(mock_openai):
+    """Test that prompt includes campaign tagline."""
     mock_openai.return_value = MagicMock()
     
     with patch.dict('os.environ', {'OPENAI_API_KEY': 'sk-test'}):
@@ -125,7 +125,7 @@ def test_build_prompt_includes_campaign_message(mock_openai):
         
         product = {'product_id': 'p1', 'name': 'Product'}
         brief = {
-            'campaign_message': 'Summer adventure awaits'
+            'campaign_tagline': 'Summer adventure awaits'
         }
         
         prompt = generator._build_prompt(product, brief)

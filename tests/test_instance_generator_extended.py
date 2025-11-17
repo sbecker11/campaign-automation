@@ -1,15 +1,15 @@
 """
-Extended tests for Report Generator.
+Extended tests for Instance Generator.
 """
 
 import pytest
 from pathlib import Path
-from src.report_generator import ReportGenerator
+from src.instance_generator import InstanceGenerator
 
 
 def test_generate_html_report(temp_dir, sample_brief_dict):
     """Test generating HTML report."""
-    generator = ReportGenerator()
+    generator = InstanceGenerator()
     
     campaign_results = {
         'campaign_id': sample_brief_dict['campaign_id'],
@@ -38,7 +38,7 @@ def test_generate_html_report(temp_dir, sample_brief_dict):
 
 def test_generate_summary(sample_brief_dict):
     """Test generating campaign summary."""
-    generator = ReportGenerator()
+    generator = InstanceGenerator()
     
     campaign_results = {
         'campaign_id': sample_brief_dict['campaign_id'],

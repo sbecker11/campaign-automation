@@ -49,8 +49,8 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b'{"error":"campaignId required"}')
                 return
 
-            # campaign_generated.json path
-            status_filename = "campaign_generated.json"
+            # campaign_instance.json path
+            status_filename = "campaign_instance.json"
             status_path = os.path.join(PROJECT_ROOT, "outputs", "campaigns", campaign_id, status_filename)
             os.makedirs(os.path.dirname(status_path), exist_ok=True)
 

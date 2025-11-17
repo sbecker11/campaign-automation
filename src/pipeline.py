@@ -15,7 +15,7 @@ from .image_generator import ImageGenerator
 from .asset_processor import AssetProcessor
 from .campaign_validator import CampaignValidator
 from .content_checker import ContentChecker
-from .report_generator import ReportGenerator
+from .instance_generator import InstanceGenerator
 
 
 logging.basicConfig(
@@ -56,7 +56,7 @@ class CampaignPipeline:
         self.asset_processor = AssetProcessor()
         self.validator = CampaignValidator()
         self.content_checker = ContentChecker()
-        self.report_generator = ReportGenerator()
+        self.instance_generator = InstanceGenerator()
         
         self.logger.info(f"Pipeline initialized")
         self.logger.info(f"Assets directory: {self.assets_dir}")
@@ -152,11 +152,11 @@ class CampaignPipeline:
         self.logger.info("")
         self.logger.info("✅ Step 3: Validating brand compliance - checking colors, prohibited words...")
         
-        # Generate consolidated campaign_generated.json
+        # Generate consolidated campaign_instance.json
         self.logger.info("")
-        self.logger.info(f"📊 Generating consolidated campaign_generated.json...")
-        self.report_generator.generate_reports(results, campaign, campaign_output_dir, campaign_path)
-        self.logger.info(f"  📄 Consolidated campaign_generated.json saved to {campaign_output_dir}")
+        self.logger.info(f"📊 Generating consolidated campaign_instance.json...")
+        self.instance_generator.generate_reports(results, campaign, campaign_output_dir, campaign_path)
+        self.logger.info(f"  📄 Consolidated campaign_instance.json saved to {campaign_output_dir}")
         
         self.logger.info("")
         self.logger.info("✅ Pipeline completed successfully!")

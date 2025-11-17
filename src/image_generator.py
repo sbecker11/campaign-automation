@@ -237,11 +237,11 @@ class ImageGenerator:
             "Product should be the hero of the image, clearly visible and appealing.",
         ])
         
-        # Add campaign message context
-        campaign_message = brief.get('campaign_message', '')
-        if campaign_message:
+        # Add campaign tagline context
+        campaign_tagline = brief.get('campaign_tagline', '')
+        if campaign_tagline:
             prompt_parts.append(
-                f"Suitable for social media advertising with emotional appeal that conveys: {campaign_message}."
+                f"Suitable for social media advertising with emotional appeal that conveys: {campaign_tagline}."
             )
         
         # CRITICAL: Avoid color bars and overlays
@@ -277,7 +277,7 @@ if __name__ == '__main__':
     
     test_brief = {
         'target_audience': 'test users',
-        'campaign_message': 'Test message',
+        'campaign_tagline': 'Test tagline',
         'brand_guidelines': {
             'brand_colors': ['#FF6B35', '#004E89']
         }

@@ -1,7 +1,7 @@
 """
-Report Generator
+Instance Generator
 
-Generates JSON reports for campaign generation and compliance.
+Generates campaign instance JSON files for campaign generation and compliance.
 """
 
 import json
@@ -11,39 +11,35 @@ from typing import Dict, List
 from datetime import datetime
 
 
-class ReportGenerator:
-    """Generate campaign reports."""
+class InstanceGenerator:
+    """Generate campaign instances."""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
     def generate_reports(self, results: List[Dict], brief: Dict, output_dir: Path, campaign_yaml_path: Path = None) -> None:
         """
-        Generate consolidated campaign_generated.json with all campaign data.
+        Generate consolidated campaign_instance.json with all campaign data.
         
         Args:
             results: List of product processing results
             brief: Campaign brief
-            output_dir: Directory to save reports (campaign root, not reports subdirectory)
+            output_dir: Directory to save campaign instance (campaign root directory)
             campaign_yaml_path: Path to the original campaign YAML file
         """
         try:
-            # campaign root is the output_dir (pipeline passes reports_dir, but we want campaign root)
-            # If output_dir ends with 'reports', use parent, otherwise use as-is
-            if output_dir.name == 'reports':
-                campaign_root = output_dir.parent
-            else:
-                campaign_root = output_dir
+            # Use output_dir as campaign root
+            campaign_root = output_dir
             
-            # Create consolidated campaign_generated.json with all data
+            # Create consolidated campaign_instance.json with all data
             status_data = self._create_consolidated_status(results, brief, campaign_yaml_path)
-            status_filename = "campaign_generated.json"
+            status_filename = "campaign_instance.json"
             status_path = campaign_root / status_filename
             status_path.write_text(json.dumps(status_data, indent=2))
             self.logger.info(f"Consolidated {status_filename} saved: {status_path}")
             
         except Exception as e:
-            self.logger.error(f"Failed to generate campaign_generated.json: {e}")
+            self.logger.error(f"Failed to generate campaign_instance.json: {e}")
     
     def _create_generation_report(self, results: List[Dict], brief: Dict) -> Dict:
         """Create generation report with summary statistics."""
@@ -89,7 +85,7 @@ class ReportGenerator:
     
     def _create_consolidated_status(self, results: List[Dict], brief: Dict, campaign_yaml_path: Path = None) -> Dict:
         """
-        Create consolidated campaign_generated.json with all data, including per-image records.
+        Create consolidated campaign_instance.json with all data, including per-image records.
         Each product image has its own record with all generation and compliance data.
         """
         # Calculate summary statistics
@@ -210,7 +206,7 @@ class ReportGenerator:
             ],
             'aspect_ratios': brief.get('aspect_ratios', []),
             'target_audience': brief.get('target_audience'),
-            'campaign_message': brief.get('campaign_message'),
+            'campaign_tagline': brief.get('campaign_tagline'),
             'brand_guidelines': brief.get('brand_guidelines', {}),
             'validation_rules': {
                 'logo_required': brief.get('brand_guidelines', {}).get('logo_required', False),
@@ -280,7 +276,7 @@ class ReportGenerator:
 
 if __name__ == '__main__':
     # Simple test
-    generator = ReportGenerator()
+    generator = InstanceGenerator()
     
     test_results = [
         {
@@ -318,4 +314,5 @@ if __name__ == '__main__':
     output_dir.mkdir(exist_ok=True)
     
     generator.generate_reports(test_results, test_brief, output_dir)
-    print("✅ Test campaign_generated.json generated in temp/")
+    print("✅ Test campaign_instance.json generated in temp/")
+

@@ -17,7 +17,7 @@ def mock_components():
          patch('src.pipeline.AssetProcessor') as mock_processor, \
          patch('src.pipeline.CampaignValidator') as mock_validator, \
          patch('src.pipeline.ContentChecker') as mock_checker, \
-         patch('src.pipeline.ReportGenerator') as mock_reporter:
+         patch('src.pipeline.InstanceGenerator') as mock_reporter:
         
         # Setup CampaignParser mock
         mock_parser_instance = MagicMock()
@@ -44,7 +44,7 @@ def mock_components():
         }
         mock_checker.return_value = mock_checker_instance
         
-        # Setup ReportGenerator mock
+        # Setup InstanceGenerator mock
         mock_reporter_instance = MagicMock()
         mock_reporter.return_value = mock_reporter_instance
         
@@ -108,7 +108,7 @@ def test_pipeline_with_existing_assets(mock_components, temp_dir):
     brief = {
         'campaign_id': 'test_001',
         'campaign_name': 'Test Campaign',
-        'campaign_message': 'Test message',
+        'campaign_tagline': 'Test tagline',
         'products': [
             {
                 'product_id': 'prod1',
@@ -180,7 +180,7 @@ def test_pipeline_multiple_products(mock_components, temp_dir):
     brief = {
         'campaign_id': 'multi_001',
         'campaign_name': 'Multi Product Campaign',
-        'campaign_message': 'Multiple products',
+        'campaign_tagline': 'Multiple products',
         'products': [
             {
                 'product_id': 'prod1',
@@ -232,7 +232,7 @@ def test_pipeline_multiple_aspect_ratios(mock_components, temp_dir):
     brief = {
         'campaign_id': 'ratio_test',
         'campaign_name': 'Ratio Test',
-        'campaign_message': 'Test',
+        'campaign_tagline': 'Test',
         'products': [
             {
                 'product_id': 'prod1',

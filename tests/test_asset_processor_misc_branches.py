@@ -29,7 +29,7 @@ def test_add_text_overlay_font_fallback_and_bounds(monkeypatch):
     ap = AssetProcessor()
     # Use a reasonably sized image to avoid degenerate text metrics
     img = _img(size=(800, 600))
-    brief = {"campaign_message": "This is a very very very long message to test bounds."}
+    brief = {"campaign_tagline": "This is a very very very long message to test bounds."}
     out = ap._add_text_overlay(img, brief, aspect_ratio="1:1")
     assert isinstance(out, Image.Image)
 

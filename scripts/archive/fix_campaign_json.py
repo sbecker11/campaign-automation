@@ -43,7 +43,7 @@ def fix_campaign_json(json_path: Path):
                 v.get('ratio') for v in input_config.get('image_variants', [])
             ],
             'target_audience': None,  # Not available
-            'campaign_message': None,  # Not available
+            'campaign_tagline': None,  # Not available
             'brand_guidelines': input_config.get('brand_guidelines', {}),
             'validation_rules': input_config.get('validation_rules', {})
         },

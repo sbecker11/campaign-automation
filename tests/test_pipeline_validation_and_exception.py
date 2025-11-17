@@ -17,7 +17,7 @@ def _campaign_min(tmp_path):
     }
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")
@@ -54,7 +54,7 @@ def test_process_product_emits_validation_warnings(mock_parser, mock_img, mock_a
     assert "low image quality score" in messages
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")

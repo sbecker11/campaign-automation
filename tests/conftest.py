@@ -31,7 +31,7 @@ def sample_campaign_dict():
         ],
         'target_market': 'US_California',
         'target_audience': 'test_audience_25-45',
-        'campaign_message': 'Test campaign message',
+        'campaign_tagline': 'Test campaign tagline',
         'campaign_hashtags': ['#TestCampaign', '#Testing'],
         'brand_guidelines': {
             'brand_colors': ['#FF6B35', '#004E89', '#FFFFFF'],
@@ -39,8 +39,7 @@ def sample_campaign_dict():
         },
         'aspect_ratios': ['1:1', '9:16'],
         'content_safety': {
-            'prohibited_words': ['guaranteed', 'miracle'],
-            'require_disclaimer': False
+            'prohibited_words': ['guaranteed', 'miracle']
         }
     }
 

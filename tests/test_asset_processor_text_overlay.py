@@ -27,7 +27,7 @@ def test_add_text_overlay_positions_and_defaults(tmp_path):
     base.save(p)
 
     brief = {
-        "campaign_message": "Hello world from tests",
+        "campaign_tagline": "Hello world from tests",
         "brand_guidelines": {}
     }
     # 1:1 overlay path (non-9:16)
@@ -42,7 +42,7 @@ def test_add_text_overlay_positions_and_defaults(tmp_path):
     assert isinstance(out2, Image.Image)
 
     # No message returns original image
-    no_msg = ap._add_text_overlay(Image.open(p), {"campaign_message": ""}, aspect_ratio='1:1')
+    no_msg = ap._add_text_overlay(Image.open(p), {"campaign_tagline": ""}, aspect_ratio='1:1')
     assert isinstance(no_msg, Image.Image)
 
 

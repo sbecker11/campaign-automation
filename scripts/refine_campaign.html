@@ -122,9 +122,9 @@
       keepCount.textContent = Math.max(0, cards.length - del);
     };
     async function loadImages() {
-      // Read campaign_generated.json to enumerate variants (fallback to filesystem if needed)
+      // Read campaign_instance.json to enumerate variants (fallback to filesystem if needed)
       try {
-        const statusRes = await fetch(`/outputs/campaigns/${campaign}/campaign_generated.json`);
+        const statusRes = await fetch(`/outputs/campaigns/${campaign}/campaign_instance.json`);
         if (statusRes.ok) {
           const status = await statusRes.json();
           // Extract images with their metadata from products array
@@ -243,7 +243,7 @@
 
     async function preloadHidden() {
       try {
-        const res = await fetch(`/outputs/campaigns/${campaign}/campaign_generated.json`);
+        const res = await fetch(`/outputs/campaigns/${campaign}/campaign_instance.json`);
         if (res.ok) {
           const js = await res.json();
           const marked = new Set();

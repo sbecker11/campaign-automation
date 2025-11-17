@@ -21,7 +21,7 @@ def test_create_variant_logo_missing_path(tmp_path, caplog):
             "logo_required": True,
             # no logo_path
         },
-        "campaign_message": "hello",
+        "campaign_tagline": "hello",
     }
     product = {"product_id": "pid", "name": "Name"}
     outdir = tmp_path / "out"
@@ -44,7 +44,7 @@ def test_create_variant_logo_invalid_skips(tmp_path, caplog):
             "logo_required": True,
             "logo_path": str(bad_logo),
         },
-        "campaign_message": "hello",
+        "campaign_tagline": "hello",
     }
     product = {"product_id": "pid2", "name": "Name2"}
     outdir = tmp_path / "out2"
@@ -58,7 +58,7 @@ def test_add_text_overlay_bounds_without_fallback():
     # Small image and very long text to trigger y adjustments (196, 199)
     # Use a larger image to avoid degenerate font metrics on some systems
     img = _rgb_img(size=(1200, 800))
-    brief = {"campaign_message": " ".join(["long"] * 200)}
+    brief = {"campaign_tagline": " ".join(["long"] * 200)}
     out = ap._add_text_overlay(img, brief, aspect_ratio="1:1")
     assert isinstance(out, Image.Image)
 

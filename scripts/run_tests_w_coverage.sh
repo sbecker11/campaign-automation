@@ -26,5 +26,6 @@ else
     echo ""
     echo "✅ Coverage HTML report:"
     echo ""
-    echo "open file://$PROJECT_ROOT/htmlcov/class_index.html"
+    echo "copy and paste the following URL into your browser: "
+    echo "file://$PROJECT_ROOT/htmlcov/class_index.html"
 fi

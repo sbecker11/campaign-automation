@@ -32,10 +32,10 @@ class ContentChecker:
         """
         issues = []
         
-        # Check campaign message
-        campaign_message = brief.get('campaign_message', '')
-        if campaign_message and isinstance(campaign_message, str):
-            message_issues = self._check_text(campaign_message, 'campaign_message')
+        # Check campaign tagline
+        campaign_tagline = brief.get('campaign_tagline', '')
+        if campaign_tagline and isinstance(campaign_tagline, str):
+            message_issues = self._check_text(campaign_tagline, 'campaign_tagline')
             issues.extend(message_issues)
         
         # Check product descriptions
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     checker = ContentChecker()
     
     test_brief = {
-        'campaign_message': 'Get your free miracle cure today!',
+        'campaign_tagline': 'Get your free miracle cure today!',
         'products': [
             {
                 'name': 'Test Product',

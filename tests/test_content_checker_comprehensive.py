@@ -15,7 +15,7 @@ def checker():
 def test_check_clean_brief(checker, sample_brief_dict):
     """Test brief with no prohibited words passes."""
     clean_brief = sample_brief_dict.copy()
-    clean_brief['campaign_message'] = 'Great summer products for your enjoyment'
+    clean_brief['campaign_tagline'] = 'Great summer products for your enjoyment'
     clean_brief['products'][0]['description'] = 'High-quality sunscreen'
     
     result = checker.check(clean_brief)
@@ -25,9 +25,9 @@ def test_check_clean_brief(checker, sample_brief_dict):
 
 
 def test_check_brief_with_prohibited_words(checker):
-    """Test detection of prohibited words in campaign message."""
+    """Test detection of prohibited words in campaign tagline."""
     brief_with_issues = {
-        'campaign_message': 'Get your free miracle cure guaranteed!',
+        'campaign_tagline': 'Get your free miracle cure guaranteed!',
         'products': [],
         'target_audience': 'everyone'
     }
@@ -41,7 +41,7 @@ def test_check_brief_with_prohibited_words(checker):
 def test_check_product_description_prohibited_words(checker):
     """Test detection in product descriptions."""
     brief = {
-        'campaign_message': 'Great products',
+        'campaign_tagline': 'Great products',
         'products': [
             {
                 'name': 'Test Product',
@@ -59,7 +59,7 @@ def test_check_product_description_prohibited_words(checker):
 def test_check_product_name_prohibited_words(checker):
     """Test detection in product names."""
     brief = {
-        'campaign_message': 'New products',
+        'campaign_tagline': 'New products',
         'products': [
             {
                 'name': 'Miracle Cure Winner',
@@ -76,7 +76,7 @@ def test_check_product_name_prohibited_words(checker):
 def test_check_case_insensitive(checker):
     """Test that checking is case-insensitive."""
     brief = {
-        'campaign_message': 'GUARANTEED MIRACLE CURE',
+        'campaign_tagline': 'GUARANTEED MIRACLE CURE',
         'products': []
     }
     
@@ -89,7 +89,7 @@ def test_check_all_prohibited_words_detected(checker):
     """Test that all prohibited words are detected."""
     message = ' '.join(ContentChecker.PROHIBITED_WORDS)
     brief = {
-        'campaign_message': message,
+        'campaign_tagline': message,
         'products': []
     }
     

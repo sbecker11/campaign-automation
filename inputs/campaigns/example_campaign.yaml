@@ -13,7 +13,7 @@ products:
 
 target_market: "US_California"
 target_audience: "outdoor_enthusiasts_25-45"
-campaign_message: "Your summer adventure starts here"
+campaign_tagline: "Your summer adventure starts here"
 
 brand_guidelines:
   brand_colors:
@@ -32,4 +32,3 @@ content_safety:
   prohibited_words:
     - "guaranteed"
     - "miracle"
-  require_disclaimer: false

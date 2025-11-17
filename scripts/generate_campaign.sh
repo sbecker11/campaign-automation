@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # Generate Campaign - Run Campaign Automation Pipeline
-# Creates campaign images and initializes status.json files
+# Creates campaign images and campaign_instance.json
 # 
 # Supported invocations:
 # 1) No args: uses latest YAML in inputs/campaigns/ and runs with current timestamp
 #    ./generate_campaign.sh
-# 2) --output-dir <dir>: reads YAML at given output directory and writes status.json there
+# 2) --output-dir <dir>: reads YAML at given output directory
 #    ./generate_campaign.sh --output-dir outputs/campaigns/<campaign_id_or_run>
 
 set -e
@@ -74,6 +74,27 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     echo "   Output: Timestamped (each run creates a new directory)"
     echo ""
 
+    # Check logo file if logo_path is defined
+    LOGO_PATH=$(python -c "
+import yaml
+with open('$CAMPAIGN_FILE', 'r') as f:
+    data = yaml.safe_load(f)
+    logo_path = data.get('brand_guidelines', {}).get('logo_path', '')
+    if logo_path:
+        print(logo_path)
+" 2>/dev/null || echo "")
+
+    if [[ -n "$LOGO_PATH" ]]; then
+        if [[ ! -f "$LOGO_PATH" ]]; then
+            echo "⚠️  Warning: Logo file not found: $LOGO_PATH"
+            echo "   Logo will be skipped. Make sure the file exists if you want to use a logo."
+            echo ""
+        else
+            echo "✓ Logo file found: $LOGO_PATH"
+            echo ""
+        fi
+    fi
+
     # Always run timestamped
     python -m src.pipeline --campaign "$CAMPAIGN_FILE" --timestamp
 
@@ -81,33 +102,13 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     CAMPAIGN_OUTPUT_DIR=$(ls -td "outputs/campaigns/${CAMPAIGN_ID}"_* 2>/dev/null | head -n 1)
     echo "   Campaign ID: $CAMPAIGN_ID"
     echo "   Latest run dir: ${CAMPAIGN_OUTPUT_DIR:-'(not found)'}"
-
-    # Create status.json with empty hidden array (keeps by default)
-    if [[ -d "$CAMPAIGN_OUTPUT_DIR" ]]; then
-        echo ""
-        echo "📝 Creating status.json file for Campaign ID: $CAMPAIGN_ID"
-        python -c "
-import json
-from pathlib import Path
-status_file = Path('$CAMPAIGN_OUTPUT_DIR') / 'status.json'
-status_data = {'hidden': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
-with open(status_file, 'w') as f:
-    json.dump(status_data, f, indent=2)
-print(f'  ✓ Created: {status_file}')
-"
-        echo ""
-        echo "✅ Campaign generation complete for: $CAMPAIGN_ID"
-        echo "   Status.json file created with all images marked as keeps"
-        echo "   Review status: cat \"$CAMPAIGN_OUTPUT_DIR/status.json\""
-        echo "   Next: ./scripts/refine_campaign.sh"
-    else
-        echo "⚠️  Warning: Could not locate output directory for status.json (Campaign ID: $CAMPAIGN_ID)"
-        echo "   Next: ./scripts/refine_campaign.sh"
-    fi
+    echo ""
+    echo "✅ Campaign generation complete for: $CAMPAIGN_ID"
+    echo "   Next: ./scripts/refine_campaign.sh"
     exit 0
 fi
 
-# Mode 2: --output-dir <dir> – read YAML in dir and write status.json into same dir
+# Mode 2: --output-dir <dir> – read YAML in dir
 if [[ "$MODE" == "output_dir" ]]; then
     if [[ ! -d "$OUTPUT_DIR_ARG" ]]; then
         echo "❌ Error: Output directory not found: $OUTPUT_DIR_ARG"
@@ -135,30 +136,32 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     echo "   Output: Timestamped (each run creates a new directory)"
     echo ""
 
+    # Check logo file if logo_path is defined
+    LOGO_PATH=$(python -c "
+import yaml
+with open('$CAMPAIGN_FILE', 'r') as f:
+    data = yaml.safe_load(f)
+    logo_path = data.get('brand_guidelines', {}).get('logo_path', '')
+    if logo_path:
+        print(logo_path)
+" 2>/dev/null || echo "")
+
+    if [[ -n "$LOGO_PATH" ]]; then
+        if [[ ! -f "$LOGO_PATH" ]]; then
+            echo "⚠️  Warning: Logo file not found: $LOGO_PATH"
+            echo "   Logo will be skipped. Make sure the file exists if you want to use a logo."
+            echo ""
+        else
+            echo "✓ Logo file found: $LOGO_PATH"
+            echo ""
+        fi
+    fi
+
     # Always run timestamped
     python -m src.pipeline --campaign "$CAMPAIGN_FILE" --timestamp
 
-    # Write a status.json into the provided output directory (not the new run)
-    STATUS_TARGET_DIR="$OUTPUT_DIR_ARG"
-    if [[ -d "$STATUS_TARGET_DIR" ]]; then
-        echo ""
-        echo "📝 Creating status.json in provided output directory for Campaign ID: $CAMPAIGN_ID"
-        python -c "
-import json
-from pathlib import Path
-status_file = Path('$STATUS_TARGET_DIR') / 'status.json'
-status_data = {'hidden': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
-with open(status_file, 'w') as f:
-    json.dump(status_data, f, indent=2)
-print(f'  ✓ Created: {status_file}')
-"
-        echo ""
-        echo "✅ Status file created in: $STATUS_TARGET_DIR for Campaign ID: $CAMPAIGN_ID"
-        echo "   Review status: cat \"$STATUS_TARGET_DIR/status.json\""
-        echo "   Next: ./scripts/refine_campaign.sh"
-    else
-        echo "⚠️  Warning: Provided output directory not found for status.json: $STATUS_TARGET_DIR (Campaign ID: $CAMPAIGN_ID)"
-        echo "   Next: ./scripts/refine_campaign.sh"
-    fi
+    echo ""
+    echo "✅ Campaign generation complete for Campaign ID: $CAMPAIGN_ID"
+    echo "   Next: ./scripts/refine_campaign.sh"
     exit 0
 fi

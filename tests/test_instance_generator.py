@@ -1,21 +1,21 @@
 """
-Tests for the Report Generator.
+Tests for the Instance Generator.
 """
 
 import pytest
 from pathlib import Path
-from src.report_generator import ReportGenerator
+from src.instance_generator import InstanceGenerator
 
 
-def test_report_generator_initialization():
-    """Test ReportGenerator can be initialized."""
-    generator = ReportGenerator()
+def test_instance_generator_initialization():
+    """Test InstanceGenerator can be initialized."""
+    generator = InstanceGenerator()
     assert generator is not None
 
 
 def test_generate_report(temp_dir, sample_brief_dict):
     """Test generating a campaign report."""
-    generator = ReportGenerator()
+    generator = InstanceGenerator()
     
     # Create mock campaign results
     campaign_results = {

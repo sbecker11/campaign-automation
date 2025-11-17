@@ -21,7 +21,7 @@ def _minimal_campaign(tmp_path, logo_required=False):
     }
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")
@@ -52,7 +52,7 @@ def test_run_injects_logo_path_when_required(mock_parser, mock_img, mock_asset, 
     assert Path(campaign["brand_guidelines"]["logo_path"]).exists()
 
 
-@patch("src.pipeline.ReportGenerator")
+@patch("src.pipeline.InstanceGenerator")
 @patch("src.pipeline.ContentChecker")
 @patch("src.pipeline.CampaignValidator")
 @patch("src.pipeline.AssetProcessor")

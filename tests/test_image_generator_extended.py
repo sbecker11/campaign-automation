@@ -21,7 +21,7 @@ def test_generate_image_mock(mock_openai):
         if hasattr(generator, 'generate'):
             result = generator.generate(
                 product_description="Test product",
-                campaign_message="Test message"
+                campaign_tagline="Test tagline"
             )
             
             assert result is not None
