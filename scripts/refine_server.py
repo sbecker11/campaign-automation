@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 import json
 import os
+import threading
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Serve the entire project root (one level up from scripts/)
 PROJECT_ROOT = os.path.dirname(ROOT_DIR)
+
+# Global server reference for shutdown
+_server_instance = None
 
 class RefineHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
@@ -34,17 +38,18 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 return
 
             campaign_id = payload.get("campaignId")
-            deletes = payload.get("deletes", [])
+            hidden_paths = payload.get("hidden", [])
             images = payload.get("images", None)
-            if not campaign_id or not isinstance(deletes, list):
+            if not campaign_id or not isinstance(hidden_paths, list):
                 self.send_response(400)
                 self._send_cors_headers()
                 self.end_headers()
-                self.wfile.write(b'{"error":"campaignId and deletes[] required"}')
+                self.wfile.write(b'{"error":"campaignId and hidden[] required"}')
                 return
 
-            # status.json path
-            status_path = os.path.join(PROJECT_ROOT, "outputs", "campaigns", campaign_id, "status.json")
+            # campaign_generated.json path
+            status_filename = "campaign_generated.json"
+            status_path = os.path.join(PROJECT_ROOT, "outputs", "campaigns", campaign_id, status_filename)
             os.makedirs(os.path.dirname(status_path), exist_ok=True)
 
             # Merge: update only visibility and comments; preserve other fields if file exists
@@ -55,30 +60,46 @@ class RefineHandler(SimpleHTTPRequestHandler):
                         status = json.load(f) or {}
                 except Exception:
                     status = {}
-            # Legacy top-level 'deletes' array renamed to 'hidden'
-            status["hidden"] = deletes
+            # Store hidden paths
+            status["hidden"] = hidden_paths
             # If images array provided, update hidden flags and comments on matching paths; preserve warnings and other fields
             if images is not None:
-                # Ensure images structure exists
-                existing = status.get("images")
-                if isinstance(existing, list):
-                    # Build map from path to payload (hidden/comment)
-                    by_path = {
-                        img.get("path"): {
-                            "hidden": bool(img.get("hidden")),
-                            "comment": img.get("comment") if isinstance(img.get("comment"), str) else None,
-                        }
-                        for img in images
-                        if isinstance(img, dict) and img.get("path")
+                # Build map from path to payload (hidden/comment)
+                by_path = {
+                    img.get("path"): {
+                        "hidden": bool(img.get("hidden")),
+                        "comment": img.get("comment") if isinstance(img.get("comment"), str) else "",
                     }
-                    for img in existing:
+                    for img in images
+                    if isinstance(img, dict) and img.get("path")
+                }
+                
+                # Update flat image_variants array (for backward compatibility)
+                existing_image_variants = status.get("image_variants")
+                if isinstance(existing_image_variants, list):
+                    for img in existing_image_variants:
                         p = img.get("path")
                         if p in by_path:
-                            img["hidden"] = by_path[p]["hidden"]
-                            if by_path[p]["comment"] is not None:
-                                img["comment"] = by_path[p]["comment"]
+                            # Always update hidden status (explicitly set boolean)
+                            img["hidden"] = bool(by_path[p]["hidden"])
+                            # Always update comment (even if empty string)
+                            img["comment"] = by_path[p]["comment"]
                 else:
-                    status["images"] = images
+                    status["image_variants"] = images
+                
+                # Update image_variants within products array (new consolidated structure)
+                products = status.get("products", [])
+                if isinstance(products, list):
+                    for product in products:
+                        product_image_variants = product.get("image_variants", [])
+                        if isinstance(product_image_variants, list):
+                            for img in product_image_variants:
+                                p = img.get("path")
+                                if p in by_path:
+                                    # Always update hidden status (explicitly set boolean)
+                                    img["hidden"] = bool(by_path[p]["hidden"])
+                                    # Always update comment (even if empty string)
+                                    img["comment"] = by_path[p]["comment"]
 
             try:
                 with open(status_path, "w") as f:
@@ -87,13 +108,28 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 self.send_response(500)
                 self._send_cors_headers()
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": f"failed to write status.json: {e}"}).encode("utf-8"))
+                self.wfile.write(json.dumps({"error": f"failed to write {status_filename}: {e}"}).encode("utf-8"))
                 return
 
             self.send_response(200)
             self._send_cors_headers()
             self.end_headers()
             self.wfile.write(b'{"ok":true}')
+            return
+
+        if parsed.path == "/api/shutdown":
+            # Shutdown the server after sending response
+            def shutdown_server():
+                import time
+                time.sleep(0.5)  # Give time for response to be sent
+                if _server_instance:
+                    _server_instance.shutdown()
+            
+            threading.Thread(target=shutdown_server, daemon=True).start()
+            self.send_response(200)
+            self._send_cors_headers()
+            self.end_headers()
+            self.wfile.write(b'{"ok":true,"message":"Server shutting down"}')
             return
 
         # Unknown POST
@@ -166,9 +202,17 @@ class RefineHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
 def run(port: int):
+    global _server_instance
     server = HTTPServer(("0.0.0.0", port), RefineHandler)
+    _server_instance = server
     print(f"Refine server running on http://localhost:{port}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+        print("Refine server stopped")
 
 if __name__ == "__main__":
     import argparse

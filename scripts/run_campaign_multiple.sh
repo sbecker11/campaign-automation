@@ -65,7 +65,7 @@ for i in $(seq 1 $COUNT); do
         echo ""
         echo "📝 Creating status.json file..."
         
-        # Create status.json with empty deletes array (all images are keeps by default)
+        # Create status.json with empty hidden array (all images are keeps by default)
         STATUS_FILE="${CAMPAIGN_OUTPUT_DIR}/status.json"
         python -c "
 import json
@@ -75,8 +75,8 @@ from pathlib import Path
 campaign_dir = Path('$CAMPAIGN_OUTPUT_DIR')
 status_file = Path('$STATUS_FILE')
 
-# Initialize with empty deletes array
-status_data = {'deletes': []}
+# Initialize with empty hidden array
+status_data = {'hidden': []}
 
 # Write status.json
 with open(status_file, 'w') as f:

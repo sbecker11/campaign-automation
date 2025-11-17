@@ -38,13 +38,14 @@ class ImageGenerator:
         self.temp_dir = Path('temp')
         self.temp_dir.mkdir(exist_ok=True)
     
-    def generate_image(self, product: Dict, brief: Dict) -> Path:
+    def generate_image(self, product: Dict, brief: Dict, output_dir: Path = None) -> Path:
         """
         Generate product image using DALL-E 3.
         
         Args:
             product: Product information
             brief: Campaign brief
+            output_dir: Optional directory to save the image. If None, saves to temp/
             
         Returns:
             Path to generated image
@@ -71,8 +72,15 @@ class ImageGenerator:
             image_url = response.data[0].url
             image_data = requests.get(image_url).content
             
-            # Save to temp directory
-            output_path = self.temp_dir / f"{product_id}_generated.png"
+            # Determine output directory
+            if output_dir is None:
+                save_dir = self.temp_dir
+            else:
+                save_dir = Path(output_dir)
+                save_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Save to output directory
+            output_path = save_dir / f"{product_id}_generated.png"
             output_path.write_bytes(image_data)
             
             # Validate image - check for color bars and regenerate if found

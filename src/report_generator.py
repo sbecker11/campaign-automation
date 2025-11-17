@@ -17,44 +17,33 @@ class ReportGenerator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
     
-    def generate_reports(self, results: List[Dict], brief: Dict, output_dir: Path) -> None:
+    def generate_reports(self, results: List[Dict], brief: Dict, output_dir: Path, campaign_yaml_path: Path = None) -> None:
         """
-        Generate both generation and compliance reports.
+        Generate consolidated campaign_generated.json with all campaign data.
         
         Args:
             results: List of product processing results
             brief: Campaign brief
-            output_dir: Directory to save reports
+            output_dir: Directory to save reports (campaign root, not reports subdirectory)
+            campaign_yaml_path: Path to the original campaign YAML file
         """
         try:
-            # Ensure output directory exists
-            output_dir.mkdir(parents=True, exist_ok=True)
-            
-            # Generate generation report
-            generation_report = self._create_generation_report(results, brief)
-            generation_path = output_dir / 'generation_report.json'
-            generation_path.write_text(json.dumps(generation_report, indent=2))
-            self.logger.info(f"Generation report saved: {generation_path}")
-            
-            # Generate compliance report
-            compliance_report = self._create_compliance_report(results, brief)
-            compliance_path = output_dir / 'compliance_report.json'
-            compliance_path.write_text(json.dumps(compliance_report, indent=2))
-            self.logger.info(f"Compliance report saved: {compliance_path}")
-            
-            # Also emit a combined status.json at the campaign root (file-based single source of truth)
-            try:
-                # campaign root is parent of reports directory
+            # campaign root is the output_dir (pipeline passes reports_dir, but we want campaign root)
+            # If output_dir ends with 'reports', use parent, otherwise use as-is
+            if output_dir.name == 'reports':
                 campaign_root = output_dir.parent
-                combined = self._combine_status(generation_report, compliance_report)
-                status_path = campaign_root / 'status.json'
-                status_path.write_text(json.dumps(combined, indent=2))
-                self.logger.info(f"Combined status saved: {status_path}")
-            except Exception as e:
-                self.logger.warning(f"Failed to write combined status.json: {e}")
+            else:
+                campaign_root = output_dir
+            
+            # Create consolidated campaign_generated.json with all data
+            status_data = self._create_consolidated_status(results, brief, campaign_yaml_path)
+            status_filename = "campaign_generated.json"
+            status_path = campaign_root / status_filename
+            status_path.write_text(json.dumps(status_data, indent=2))
+            self.logger.info(f"Consolidated {status_filename} saved: {status_path}")
             
         except Exception as e:
-            self.logger.error(f"Failed to generate reports: {e}")
+            self.logger.error(f"Failed to generate campaign_generated.json: {e}")
     
     def _create_generation_report(self, results: List[Dict], brief: Dict) -> Dict:
         """Create generation report with summary statistics."""
@@ -98,63 +87,170 @@ class ReportGenerator:
         
         return report
     
-    def _combine_status(self, generation: Dict, compliance: Dict) -> Dict:
-        """Combine generation and compliance reports into a single status structure."""
-        combined_summary = {
-            'total_products': generation.get('summary', {}).get('total_products'),
-            'successful': generation.get('summary', {}).get('successful'),
-            'failed': generation.get('summary', {}).get('failed'),
-            'total_variants_generated': generation.get('summary', {}).get('total_variants_generated'),
-            'total_variants_checked': compliance.get('summary', {}).get('total_variants_checked'),
-            'passed': compliance.get('summary', {}).get('passed'),
-            'failed_checks': compliance.get('summary', {}).get('failed'),
-            'compliance_rate': compliance.get('summary', {}).get('compliance_rate'),
-        }
+    def _create_consolidated_status(self, results: List[Dict], brief: Dict, campaign_yaml_path: Path = None) -> Dict:
+        """
+        Create consolidated campaign_generated.json with all data, including per-image records.
+        Each product image has its own record with all generation and compliance data.
+        """
+        # Calculate summary statistics
+        successful = sum(1 for r in results if r.get('status') == 'success')
+        failed = sum(1 for r in results if r.get('status') == 'error')
         
-        # Build per-image records with warning flags derived from validations
-        images = []
-        for v in compliance.get('validations', []):
+        total_variants = sum(
+            len(r.get('variants', [])) 
+            for r in results 
+            if r.get('status') == 'success'
+        )
+        
+        # Count compliance checks
+        total_checks = 0
+        passed_checks = 0
+        for result in results:
+            if result.get('status') == 'success':
+                for validation in result.get('validations', []):
+                    campaign_val = validation.get('campaign_validation') or validation.get('brand_validation') or {}
+                    if campaign_val:
+                        total_checks += 1
+                        if campaign_val.get('overall_compliant', True):
+                            passed_checks += 1
+        
+        compliance_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 100.0
+        
+        # Build products array with per-image records
+        products = []
+        all_images = []
+        hidden_paths = []
+        
+        for result in results:
+            product_id = result.get('product_id')
+            product_name = result.get('product_name')
+            status = result.get('status')
+            
+            product_data = {
+                'product_id': product_id,
+                'product_name': product_name,
+                'status': status
+            }
+            
+            if status == 'success':
+                product_data['base_image'] = result.get('base_image')
+                product_data['variant_count'] = len(result.get('variants', []))
+                
+                # Create per-image records with all data
+                product_images = []
+                for validation in result.get('validations', []):
+                    image_path = validation.get('variant') or ''
+                    ratio = validation.get('ratio')
+                    # Support both campaign_validation and brand_validation (legacy)
+                    campaign_validation = validation.get('campaign_validation') or validation.get('brand_validation') or {}
+                    content_check = validation.get('content_check') or {}
+                    
+                    # Ensure campaign_validation.image_path matches the path field
+                    # This ensures consistency in the JSON structure
+                    if campaign_validation:
+                        # Make a copy to avoid mutating the original
+                        campaign_validation = campaign_validation.copy()
+                        campaign_validation['image_path'] = image_path
+                    
+                    # Calculate warnings from validation data
+                    checks = campaign_validation.get('checks', {}) or {}
+                    logo = checks.get('logo_detection') or {}
+                    color = checks.get('color_validation') or {}
+                    qual = checks.get('image_quality') or {}
+                    
+                    logo_missing = (bool(logo) and not logo.get('detected', True))
+                    colors_missing = (bool(color) and not color.get('colors_present', True))
+                    low_quality = (isinstance(qual, dict) and qual.get('quality_score', 1.0) < 0.5)
+                    
+                    warnings = {
+                        'logo_missing': logo_missing,
+                        'colors_missing': colors_missing,
+                        'low_quality': low_quality,
+                    }
+                    is_hidden = any(warnings.values())
+                    
+                    if is_hidden:
+                        hidden_paths.append(image_path)
+                    
+                    # Create image record with all data from both reports
+                    image_record = {
+                        'path': image_path,
+                        'ratio': ratio,
+                        'campaign_validation': campaign_validation,
+                        'content_check': content_check,
+                        'warnings': warnings,
+                        'hidden': is_hidden,
+                        'comment': ""  # User-editable notes added later in refine UI
+                    }
+                    
+                    product_images.append(image_record)
+                    all_images.append(image_record)
+                
+                product_data['image_variants'] = product_images
+            else:
+                product_data['error'] = result.get('error')
+                product_data['image_variants'] = []
+            
+            products.append(product_data)
+        
+        # Store campaign YAML path (relative to project root if possible)
+        campaign_yaml_path_str = None
+        if campaign_yaml_path:
             try:
-                path = v.get('variant') or ''
-                ratio = v.get('ratio')
-                checks = v.get('campaign_validation', {}) or {}
-                logo = checks.get('logo_detection') or {}
-                color = checks.get('color_validation') or {}
-                qual = checks.get('image_quality') or {}
-                logo_missing = (bool(logo) and not logo.get('detected', True))
-                colors_missing = (bool(color) and not color.get('colors_present', True))
-                low_quality = (isinstance(qual, dict) and qual.get('quality_score', 1.0) < 0.5)
-                warnings = {
-                    'logo_missing': logo_missing,
-                    'colors_missing': colors_missing,
-                    'low_quality': low_quality,
-                }
-                hidden = any(warnings.values())
-                images.append({
-                    'path': path,
-                    'ratio': ratio,
-                    'warnings': warnings,
-                    'hidden': hidden,
-                    # User-editable notes added later in refine UI
-                    'comment': "",
-                })
-            except Exception:
-                continue
+                # Try to make it relative to current working directory
+                campaign_yaml_path_str = str(campaign_yaml_path.relative_to(Path.cwd()))
+            except ValueError:
+                # If not relative, use absolute path
+                campaign_yaml_path_str = str(campaign_yaml_path)
         
-        combined = {
-            'campaign_id': generation.get('campaign_id') or compliance.get('campaign_id'),
-            'campaign_name': generation.get('campaign_name') or compliance.get('campaign_name'),
-            'generated_at': generation.get('generated_at') or compliance.get('generated_at'),
-            'summary': combined_summary,
-            'products': generation.get('products', []),
-            # Include validations for convenience (optional)
-            'validations': compliance.get('validations', []),
-            # Per-image status with warnings and hidden flag (file-based single source of truth)
-            'images': images,
-            # File-based refine state; UI will update this array (legacy 'deletes' renamed to 'hidden')
-            'hidden': []
+        # Extract all campaign configuration data
+        campaign_config = {
+            'products': [
+                {
+                    'product_id': p.get('product_id'),
+                    'name': p.get('name'),
+                    'description': p.get('description'),
+                    'generate_new': p.get('generate_new', True),
+                    'existing_assets': p.get('existing_assets')
+                }
+                for p in brief.get('products', [])
+            ],
+            'aspect_ratios': brief.get('aspect_ratios', []),
+            'target_audience': brief.get('target_audience'),
+            'campaign_message': brief.get('campaign_message'),
+            'brand_guidelines': brief.get('brand_guidelines', {}),
+            'validation_rules': {
+                'logo_required': brief.get('brand_guidelines', {}).get('logo_required', False),
+                'brand_colors': brief.get('brand_guidelines', {}).get('brand_colors', []),
+                'prohibited_words': brief.get('prohibited_words', [])
+            }
         }
-        return combined
+        
+        # Build consolidated status structure
+        status_data = {
+            'campaign_yaml_path': campaign_yaml_path_str,
+            'campaign_id': brief.get('campaign_id'),
+            'campaign_name': brief.get('campaign_name'),
+            'generated_at': datetime.now().isoformat(),
+            'timestamp': datetime.now().isoformat(),  # Legacy field
+            'campaign_config': campaign_config,
+            'summary': {
+                'total_products': len(results),
+                'successful': successful,
+                'failed': failed,
+                'total_variants_generated': total_variants,
+                'total_variants_checked': total_checks,
+                'passed': passed_checks,
+                'failed_checks': total_checks - passed_checks,
+                'compliance_rate': f"{compliance_rate:.1f}%"
+            },
+            'products': products,
+            # Legacy fields for backward compatibility
+            'image_variants': all_images,  # Flat list of all image variants (for refine UI)
+            'hidden': hidden_paths  # Array of hidden image paths
+        }
+        
+        return status_data
     
     def _create_compliance_report(self, results: List[Dict], brief: Dict) -> Dict:
         """Create compliance report with validation details."""
@@ -233,4 +329,4 @@ if __name__ == '__main__':
     output_dir.mkdir(exist_ok=True)
     
     generator.generate_reports(test_results, test_brief, output_dir)
-    print("✅ Test reports generated in temp/")
+    print("✅ Test campaign_generated.json generated in temp/")

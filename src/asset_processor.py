@@ -108,10 +108,10 @@ class AssetProcessor:
             else:
                 self.logger.warning(f"logo_required=True but no logo_path specified")
         
-        ratio_dir = output_dir / aspect_ratio.replace(':', 'x')
-        ratio_dir.mkdir(parents=True, exist_ok=True)
+        # Save variant directly in product_id folder (no subdirectories)
+        output_dir.mkdir(parents=True, exist_ok=True)
         
-        output_path = ratio_dir / f"{product['product_id']}_{aspect_ratio.replace(':', 'x')}.png"
+        output_path = output_dir / f"{product['product_id']}_resized_{aspect_ratio.replace(':', 'x')}.png"
         image.save(output_path, quality=95, optimize=True)
         
         self.logger.info(f"Created variant: {output_path}")

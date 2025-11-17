@@ -3,8 +3,8 @@
 # Stats Campaign - Review status of campaign deletions
 # 
 # Usage:
-#   ./stats_campaign.sh                          # Show status.json for latest run
-#   ./stats_campaign.sh <campaign_or_run_dir>    # Show status.json for specified campaign id or run directory name
+#   ./stats_campaign.sh                          # Show campaign_generated.json for latest run
+#   ./stats_campaign.sh <campaign_or_run_dir>    # Show campaign_generated.json for specified campaign id or run directory name
 #   ./stats_campaign.sh --pretty                  # Pretty print with jq if available (latest)
 #   ./stats_campaign.sh --pretty <campaign>       # Pretty print specified
 
@@ -31,6 +31,7 @@ fi
 
 resolve_status_file() {
     local target="$1"
+    local status_file=""
 
     if [[ -z "$target" ]]; then
         # latest
@@ -39,32 +40,32 @@ resolve_status_file() {
         if [[ -z "$latest_dir" ]]; then
             echo ""; return 1
         fi
-        echo "${latest_dir%/}/status.json"; return 0
+        status_file="${latest_dir%/}"
+    elif [[ -d "$OUTPUTS_DIR/$target" ]]; then
+        # If argument is an absolute or relative path to a dir under outputs/campaigns
+        status_file="$OUTPUTS_DIR/$target"
+    elif [[ -d "$target" ]]; then
+        # Try exact path as given
+        status_file="${target%/}"
+    else
+        # Try prefix match for campaign id/run dir
+        local match
+        match=$(ls -td "$OUTPUTS_DIR/${target}"* 2>/dev/null | head -n 1 || true)
+        if [[ -n "$match" ]]; then
+            status_file="${match%/}"
+        else
+            echo ""; return 1
+        fi
     fi
-
-    # If argument is an absolute or relative path to a dir under outputs/campaigns
-    if [[ -d "$OUTPUTS_DIR/$target" ]]; then
-        echo "$OUTPUTS_DIR/$target/status.json"; return 0
-    fi
-
-    # Try exact path as given
-    if [[ -d "$target" ]]; then
-        echo "${target%/}/status.json"; return 0
-    fi
-
-    # Try prefix match for campaign id/run dir
-    local match
-    match=$(ls -td "$OUTPUTS_DIR/${target}"* 2>/dev/null | head -n 1 || true)
-    if [[ -n "$match" ]]; then
-        echo "${match%/}/status.json"; return 0
-    fi
-
-    echo ""; return 1
+    
+    # Construct filename: campaign_generated.json
+    echo "${status_file}/campaign_generated.json"
+    return 0
 }
 
 STATUS_FILE="$(resolve_status_file "$TARGET_ARG" || true)"
 if [[ -z "$STATUS_FILE" || ! -f "$STATUS_FILE" ]]; then
-    echo "❌ status.json not found${TARGET_ARG:+ for '$TARGET_ARG'}"
+    echo "❌ campaign_generated.json not found${TARGET_ARG:+ for '$TARGET_ARG'}"
     exit 1
 fi
 

@@ -47,8 +47,8 @@
         "colors_missing": false,
         "low_quality": false
       },
-      "deleted": false
+      "hidden": false
     }
   ],
-  "deletes": []
+  "hidden": []
 }

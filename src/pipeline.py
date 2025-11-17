@@ -152,12 +152,11 @@ class CampaignPipeline:
         self.logger.info("")
         self.logger.info("✅ Step 3: Validating brand compliance - checking colors, prohibited words...")
         
-        # Generate reports
+        # Generate consolidated campaign_generated.json
         self.logger.info("")
-        self.logger.info("📊 Generating compliance reports...")
-        reports_dir = campaign_output_dir / "reports"
-        self.report_generator.generate_reports(results, campaign, reports_dir)
-        self.logger.info(f"  📄 Reports saved to {reports_dir}")
+        self.logger.info(f"📊 Generating consolidated campaign_generated.json...")
+        self.report_generator.generate_reports(results, campaign, campaign_output_dir, campaign_path)
+        self.logger.info(f"  📄 Consolidated campaign_generated.json saved to {campaign_output_dir}")
         
         self.logger.info("")
         self.logger.info("✅ Pipeline completed successfully!")
@@ -170,11 +169,15 @@ class CampaignPipeline:
         product_id = product['product_id']
         
         try:
+            # Create product output directory
+            product_output_dir = output_dir / "products" / product_id
+            product_output_dir.mkdir(parents=True, exist_ok=True)
+            
             # Determine image source
             if product.get('generate_new', True):
-                # Generate new image
+                # Generate new image - save to product_id folder
                 self.logger.info(f"  🎨 Generating new image for {product_name}")
-                base_image_path = self.image_generator.generate_image(product, campaign)
+                base_image_path = self.image_generator.generate_image(product, campaign, product_output_dir)
             else:
                 # Use existing assets
                 self.logger.info(f"  📁 Using existing assets for {product_name}")
@@ -203,7 +206,6 @@ class CampaignPipeline:
                     }
             
             # Create variants for each aspect ratio
-            product_output_dir = output_dir / "products" / product_id
             aspect_ratios = campaign.get('aspect_ratios', ['1:1'])
             
             # Log aspect ratio creation (only once per product)
@@ -259,11 +261,20 @@ class CampaignPipeline:
             self.logger.info(f"✓ Processed {product_name}")
             self.logger.info("─" * 60)
             
+            # Store base_image path relative to campaign output directory
+            # Base image is in products/{product_id}/ folder
+            try:
+                base_image_relative = str(base_image_path.relative_to(output_dir))
+            except ValueError:
+                # If path is not relative to output_dir, construct relative path
+                # Format: products/{product_id}/{filename}
+                base_image_relative = f"products/{product_id}/{base_image_path.name}"
+            
             return {
                 'product_id': product_id,
                 'product_name': product_name,
                 'status': 'success',
-                'base_image': str(base_image_path),
+                'base_image': base_image_relative,
                 'variants': variants,
                 'validations': validations
             }

@@ -86,10 +86,11 @@ echo "  Products: $TOTAL_PRODUCTS"
 echo "  Images: $TOTAL_IMAGES"
 echo ""
 
-# Show reports if they exist
-if [ -d "$OUTPUT_DIR/reports" ]; then
-    echo -e "${BLUE}📄 Reports:${NC}"
-    ls -lh "$OUTPUT_DIR/reports/"
+STATUS_FILE="$OUTPUT_DIR/campaign_generated.json"
+
+# Show campaign_generated.json if it exists
+if [ -f "$STATUS_FILE" ]; then
+    echo -e "${BLUE}📄 Status:${NC} campaign_generated.json"
     echo ""
 fi
 
@@ -98,11 +99,10 @@ echo -e "${YELLOW}View Options:${NC}"
 echo "  1. Preview all images at once"
 echo "  2. Open in file browser"
 echo "  3. List all image files"
-echo "  4. Show generation report"
-echo "  5. Show compliance report"
+echo "  4. Show consolidated campaign_generated.json"
 echo ""
 
-read -p "Choose option (1-5, or Enter to skip): " choice
+read -p "Choose option (1-4, or Enter to skip): " choice
 
 case $choice in
     1)
@@ -155,21 +155,12 @@ case $choice in
         find "$OUTPUT_DIR/products" -type f -name "*.png" | sort
         ;;
     4)
-        if [ -f "$OUTPUT_DIR/reports/generation_report.json" ]; then
+        if [ -f "$STATUS_FILE" ]; then
             echo ""
-            echo -e "${BLUE}Generation Report:${NC}"
-            cat "$OUTPUT_DIR/reports/generation_report.json"
+            echo -e "${BLUE}Consolidated Status (campaign_generated.json):${NC}"
+            cat "$STATUS_FILE" | python3 -m json.tool 2>/dev/null || cat "$STATUS_FILE"
         else
-            echo "Generation report not found"
-        fi
-        ;;
-    5)
-        if [ -f "$OUTPUT_DIR/reports/compliance_report.json" ]; then
-            echo ""
-            echo -e "${BLUE}Compliance Report:${NC}"
-            cat "$OUTPUT_DIR/reports/compliance_report.json"
-        else
-            echo "Compliance report not found"
+            echo "campaign_generated.json not found"
         fi
         ;;
     *)

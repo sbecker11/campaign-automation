@@ -36,25 +36,23 @@
     }
     .path { font-family: Menlo, Monaco, monospace; font-size: 11px; color: #333; word-break: break-all; }
     .btn { cursor:pointer; padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; background:#fff; }
-    .btn.delete { border-color:#f00; color:#f00; }
+    .btn.hidden { border-color:#f00; color:#f00; }
     .btn.save { background:#4a9eff; border-color:#4a9eff; color:#fff; }
   </style>
 </head>
 <body>
   <header>
+    <h1 id="campaignTitle" style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600; color: #333; width: 100%;">Refine Campaign</h1>
     <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; width:100%;">
-      <button class="btn save" id="saveBtn">💾 Save Visibility</button>
-      <div class="counts">
-        <div>Hidden: <strong id="delCount">0</strong></div>
-        <div>Visible: <strong id="keepCount">0</strong></div>
-      </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-left:auto;">
+      <button class="btn save" id="saveBtn">💾 Save Campaign</button>
+      <button class="btn" id="exitBtn" style="background:#dc3545; border-color:#dc3545; color:#fff;">🚪 Exit</button>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <label>Product:
           <select id="filter-product">
             <option value="any">any</option>
           </select>
         </label>
-        <label>Aspect:
+        <label>Variant:
           <select id="filter-aspect">
             <option value="any">any</option>
           </select>
@@ -67,6 +65,10 @@
           </select>
         </label>
       </div>
+      <div class="counts" style="margin-left: auto;">
+        <div>Hidden: <strong id="delCount">0</strong></div>
+        <div>Visible: <strong id="keepCount">0</strong></div>
+      </div>
     </div>
   </header>
   <main class="grid" id="grid"></main>
@@ -77,33 +79,61 @@
     const delCount = document.getElementById('delCount');
     const keepCount = document.getElementById('keepCount');
     const grid = document.getElementById('grid');
+    const campaignTitle = document.getElementById('campaignTitle');
     let cards = [];
+    
+    function updateCampaignTitle(campaignId) {
+      if (campaignId) {
+        // Format: campaign_id_timestamp -> "Refine Campaign: campaign_id_timestamp"
+        campaignTitle.textContent = `Refine Campaign: ${campaignId}`;
+        // Also update page title
+        document.title = `Refine Campaign: ${campaignId}`;
+      }
+    }
     const updateCounts = () => {
       const del = cards.filter(c => c.classList.contains('marked')).length;
       delCount.textContent = del;
       keepCount.textContent = Math.max(0, cards.length - del);
     };
     async function loadImages() {
-      // Read generation_report to enumerate variants (fallback to filesystem if needed)
+      // Read campaign_generated.json to enumerate variants (fallback to filesystem if needed)
       try {
-        const genRes = await fetch(`/outputs/campaigns/${campaign}/reports/generation_report.json`);
-        if (genRes.ok) {
-          const gen = await genRes.json();
-          const images = (gen.products || []).flatMap(p => (p.variants || []));
+        const statusRes = await fetch(`/outputs/campaigns/${campaign}/campaign_generated.json`);
+        if (statusRes.ok) {
+          const status = await statusRes.json();
+          // Extract images with their metadata from products array
+          const imageData = (status.products || []).flatMap(p => 
+            (p.image_variants || []).map(img => ({
+              path: img.path,
+              product: p.product_id,
+              ratio: img.ratio || ''
+            }))
+          );
           const frag = document.createDocumentFragment();
           const prodSet = new Set();
           const aspSet = new Set();
-          images.forEach(p => {
-            const rel = p.startsWith('/') ? p.slice(1) : p;
-            const mProd = rel.match(/\/products\/([^/]+)\//);
-            const mAsp = rel.match(/\/products\/[^/]+\/([^/]+)\//);
-            const prod = mProd ? mProd[1] : '';
-            const asp = mAsp ? mAsp[1] : '';
+          imageData.forEach(imgData => {
+            // Use the full path from JSON for matching (needed for saving comments)
+            const fullPath = imgData.path;
+            // Relative path for image src (remove leading slash if present)
+            const rel = fullPath.startsWith('/') ? fullPath.slice(1) : fullPath;
+            const prod = imgData.product || '';
+            // Extract aspect ratio from ratio field (e.g., "1:1", "9:16", "16:9")
+            // Or try to extract from filename if ratio is not available
+            let asp = imgData.ratio || '';
+            if (!asp) {
+              // Fallback: try to extract from filename (e.g., "sunscreen_spf50_resized_1x1.png")
+              const match = rel.match(/_resized_(\d+x\d+)\.png$/);
+              if (match) {
+                asp = match[1].replace('x', ':');
+              }
+            }
             if (prod) prodSet.add(prod);
             if (asp) aspSet.add(asp);
             const card = document.createElement('div');
             card.className = 'card';
-            card.dataset.path = rel;
+            // Store full path for matching with JSON paths when saving
+            card.dataset.path = fullPath;
             if (prod) card.dataset.product = prod;
             if (asp) card.dataset.aspect = asp;
             card.innerHTML = `
@@ -116,7 +146,7 @@
                 <textarea class="comment-box" maxlength="512" placeholder="Add notes about this image (max 512 chars)"></textarea>
                 <div class="meta-footer">
                   <div class="compliance"></div>
-                  <div><button class="btn delete">🙈 Hide</button></div>
+                  <div><button class="btn hidden">🙈 Hide</button></div>
                 </div>
               </div>`;
             frag.appendChild(card);
@@ -185,26 +215,56 @@
       } catch (e) { /* noop */ }
     }
 
-    async function preloadDeletes() {
+    async function preloadHidden() {
       try {
-        const res = await fetch(`/outputs/campaigns/${campaign}/status.json`);
+        const res = await fetch(`/outputs/campaigns/${campaign}/campaign_generated.json`);
         if (res.ok) {
           const js = await res.json();
           const marked = new Set();
           const warnByPath = new Map();
           const commentByPath = new Map();
-          if (Array.isArray(js.images)) {
-            js.images.forEach(i => {
+          // Load from flat image_variants array first
+          if (Array.isArray(js.image_variants)) {
+            js.image_variants.forEach(i => {
               if (i && i.path) {
-                if (i.hidden) marked.add(i.path);
+                // Check hidden status (explicitly check for true/false)
+                if (i.hidden === true) marked.add(i.path);
+                else if (i.hidden === false) marked.delete(i.path);
                 if (i.warnings) warnByPath.set(i.path, i.warnings);
                 if (typeof i.comment === 'string') commentByPath.set(i.path, i.comment);
               }
             });
           }
-          if (Array.isArray(js.hidden)) js.hidden.forEach(p => marked.add(p));
+          // Also load from nested products[].image_variants[] array (overwrites flat if present)
+          if (Array.isArray(js.products)) {
+            js.products.forEach(product => {
+              if (Array.isArray(product.image_variants)) {
+                product.image_variants.forEach(i => {
+                  if (i && i.path) {
+                    // Check hidden status (explicitly check for true/false, nested takes precedence)
+                    if (i.hidden === true) marked.add(i.path);
+                    else if (i.hidden === false) marked.delete(i.path); // Explicitly remove if false
+                    if (i.warnings) warnByPath.set(i.path, i.warnings);
+                    // Nested comments take precedence over flat (overwrite if present)
+                    // Include empty strings (user may have cleared a comment)
+                    if (typeof i.comment === 'string') {
+                      commentByPath.set(i.path, i.comment);
+                    }
+                  }
+                });
+              }
+            });
+          }
+          // Also check top-level hidden array (legacy/backup) - only add paths that aren't explicitly false
+          if (Array.isArray(js.hidden)) {
+            js.hidden.forEach(p => {
+              // Only add if not explicitly set to false in the image_variants
+              // This is a backup for paths that might only be in the hidden array
+              marked.add(p);
+            });
+          }
           cards.forEach(c => {
-            const btn = c.querySelector('.btn.delete');
+            const btn = c.querySelector('.btn.hidden');
             const commentEl = c.querySelector('.comment-box');
             if (marked.has(c.dataset.path)) {
               c.classList.add('marked');
@@ -212,8 +272,12 @@
             } else if (btn) {
               btn.textContent = '🙈 Hide';
             }
-            if (commentEl && commentByPath.has(c.dataset.path)) {
-              commentEl.value = commentByPath.get(c.dataset.path).slice(0, 512);
+            if (commentEl) {
+              const savedComment = commentByPath.get(c.dataset.path);
+              if (savedComment !== undefined) {
+                // Set comment value (including empty strings)
+                commentEl.value = savedComment.slice(0, 512);
+              }
             }
             // Add compliance icons row (non-editable)
             const w = warnByPath.get(c.dataset.path);
@@ -224,7 +288,7 @@
       updateCounts();
     }
     grid.addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn.delete');
+      const btn = e.target.closest('.btn.hidden');
       if (!btn) return;
       const card = e.target.closest('.card');
       if (!card) return;
@@ -239,12 +303,12 @@
     });
     document.getElementById('saveBtn').addEventListener('click', async () => {
       try {
-        const deletes = [];
+        const hiddenPaths = [];
         const imagesPayload = [];
         cards.forEach(c => {
           const path = c.dataset.path;
           const hidden = c.classList.contains('marked');
-          if (hidden) deletes.push(path);
+          if (hidden) hiddenPaths.push(path);
           const commentEl = c.querySelector('.comment-box');
           let comment = '';
           if (commentEl && typeof commentEl.value === 'string') {
@@ -257,13 +321,46 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             campaignId: campaign,
-            deletes,
+            hidden: hiddenPaths,
             images: imagesPayload
           })
         });
-        if (resp.ok) alert('Saved visibility status.json');
+        if (resp.ok) alert('Campaign Saved');
         else alert('Save failed: HTTP ' + resp.status);
       } catch (e) { alert('Save failed: ' + e); }
+    });
+    document.getElementById('exitBtn').addEventListener('click', async () => {
+      if (confirm('Exit and close the server? This will close this window.')) {
+        try {
+          // Send shutdown request (don't wait for response)
+          fetch('/api/shutdown', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          }).catch(() => {}); // Ignore errors if server is already shutting down
+          
+          // Try to close window immediately
+          // Use multiple methods for better browser compatibility
+          setTimeout(() => {
+            // Method 1: Standard close
+            window.close();
+            
+            // Method 2: Try opening and closing (works in some browsers)
+            const win = window.open('', '_self');
+            if (win) win.close();
+            
+            // Method 3: Redirect to blank page as fallback
+            setTimeout(() => {
+              window.location.href = 'about:blank';
+            }, 100);
+          }, 300);
+        } catch (e) {
+          // If anything fails, just try to close
+          window.close();
+          setTimeout(() => {
+            window.location.href = 'about:blank';
+          }, 100);
+        }
+      }
     });
     (async function init() {
       if (!campaign) {
@@ -277,13 +374,15 @@
               const url = new URL(window.location.href);
               url.searchParams.set('campaign', campaign);
               window.history.replaceState({}, '', url.toString());
+              updateCampaignTitle(campaign);
             }
           }
         } catch (e) { console.log('latest campaign fetch failed', e); }
       }
       if (!campaign) { alert('No campaigns found. Generate a campaign first.'); return; }
+      updateCampaignTitle(campaign);
       await loadImages();
-      await preloadDeletes();
+      await preloadHidden();
     })();
   </script>
 </body>

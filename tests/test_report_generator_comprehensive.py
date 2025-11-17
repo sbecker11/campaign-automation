@@ -49,37 +49,47 @@ def successful_results():
     ]
 
 
-def test_generate_reports_creates_both_files(generator, successful_results, sample_brief_dict, temp_dir):
-    """Test that both report files are created."""
+def test_generate_reports_creates_status_json(generator, successful_results, sample_brief_dict, temp_dir):
+    """Test that consolidated campaign_generated.json is created."""
     generator.generate_reports(successful_results, sample_brief_dict, temp_dir)
     
-    generation_report = temp_dir / 'generation_report.json'
-    compliance_report = temp_dir / 'compliance_report.json'
+    status_file = temp_dir / 'campaign_generated.json'
     
-    assert generation_report.exists()
-    assert compliance_report.exists()
+    assert status_file.exists()
 
 
-def test_generation_report_structure(generator, successful_results, sample_brief_dict, temp_dir):
-    """Test generation report has correct structure."""
+def test_status_json_structure(generator, successful_results, sample_brief_dict, temp_dir):
+    """Test campaign_generated.json has correct structure with per-image records."""
     generator.generate_reports(successful_results, sample_brief_dict, temp_dir)
     
-    report_path = temp_dir / 'generation_report.json'
-    report = json.loads(report_path.read_text())
+    status_path = temp_dir / 'campaign_generated.json'
+    status = json.loads(status_path.read_text())
     
-    assert 'campaign_id' in report
-    assert 'summary' in report
-    assert report['summary']['total_products'] == len(successful_results)
+    assert 'campaign_id' in status
+    assert 'summary' in status
+    assert 'products' in status
+    assert status['summary']['total_products'] == len(successful_results)
+    # Check that products have image_variants array with per-image records
+    assert len(status['products']) > 0
+    product = status['products'][0]
+    assert 'image_variants' in product
+    assert len(product['image_variants']) > 0
+    # Check that each image has all required fields
+    image = product['image_variants'][0]
+    assert 'path' in image
+    assert 'ratio' in image
+    assert 'campaign_validation' in image
+    assert 'content_check' in image
 
 
-def test_compliance_report_calculations(generator, successful_results, sample_brief_dict, temp_dir):
-    """Test compliance rate calculations."""
+def test_status_json_compliance_calculations(generator, successful_results, sample_brief_dict, temp_dir):
+    """Test compliance rate calculations in campaign_generated.json."""
     generator.generate_reports(successful_results, sample_brief_dict, temp_dir)
     
-    report_path = temp_dir / 'compliance_report.json'
-    report = json.loads(report_path.read_text())
+    status_path = temp_dir / 'campaign_generated.json'
+    status = json.loads(status_path.read_text())
     
-    summary = report['summary']
+    summary = status['summary']
     assert summary['total_variants_checked'] == 2
     assert summary['passed'] == 2
     assert summary['compliance_rate'] == '100.0%'

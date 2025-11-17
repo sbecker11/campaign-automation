@@ -82,7 +82,7 @@ with open('$CAMPAIGN_FILE', 'r') as f:
     echo "   Campaign ID: $CAMPAIGN_ID"
     echo "   Latest run dir: ${CAMPAIGN_OUTPUT_DIR:-'(not found)'}"
 
-    # Create status.json with empty deletes array (keeps by default)
+    # Create status.json with empty hidden array (keeps by default)
     if [[ -d "$CAMPAIGN_OUTPUT_DIR" ]]; then
         echo ""
         echo "📝 Creating status.json file for Campaign ID: $CAMPAIGN_ID"
@@ -90,7 +90,7 @@ with open('$CAMPAIGN_FILE', 'r') as f:
 import json
 from pathlib import Path
 status_file = Path('$CAMPAIGN_OUTPUT_DIR') / 'status.json'
-status_data = {'deletes': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
+status_data = {'hidden': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
 with open(status_file, 'w') as f:
     json.dump(status_data, f, indent=2)
 print(f'  ✓ Created: {status_file}')
@@ -147,7 +147,7 @@ with open('$CAMPAIGN_FILE', 'r') as f:
 import json
 from pathlib import Path
 status_file = Path('$STATUS_TARGET_DIR') / 'status.json'
-status_data = {'deletes': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
+status_data = {'hidden': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
 with open(status_file, 'w') as f:
     json.dump(status_data, f, indent=2)
 print(f'  ✓ Created: {status_file}')
