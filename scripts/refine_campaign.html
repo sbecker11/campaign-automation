@@ -38,6 +38,13 @@
     .btn { cursor:pointer; padding: 6px 10px; border-radius: 4px; border: 1px solid #ccc; background:#fff; }
     .btn.hidden { border-color:#f00; color:#f00; }
     .btn.save { background:#4a9eff; border-color:#4a9eff; color:#fff; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .modal-content { background: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .modal-header h2 { margin: 0; font-size: 18px; }
+    .close { cursor: pointer; font-size: 24px; font-weight: bold; color: #999; }
+    .close:hover { color: #000; }
+    .git-commands { font-family: Menlo, Monaco, monospace; font-size: 13px; background: #f5f5f5; padding: 12px; border-radius: 4px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; user-select: all; cursor: text; }
   </style>
 </head>
 <body>
@@ -73,6 +80,16 @@
     </div>
   </header>
   <main class="grid" id="grid"></main>
+  <div id="commitModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Git Commands</h2>
+        <span class="close" id="closeModal">&times;</span>
+      </div>
+      <p style="margin-bottom: 8px; font-size: 14px; color: #666;">Copy and paste these commands into your terminal:</p>
+      <div class="git-commands" id="gitCommandsText"></div>
+    </div>
+  </div>
   <script>
     // Expect campaign parameter ?campaign=<id[/timestamp]>; if missing, fetch latest from server
     const params = new URLSearchParams(location.search);
@@ -330,6 +347,19 @@
         else alert('Save failed: HTTP ' + resp.status);
       } catch (e) { alert('Save failed: ' + e); }
     });
+    const commitModal = document.getElementById('commitModal');
+    const gitCommandsText = document.getElementById('gitCommandsText');
+    const closeModal = document.getElementById('closeModal');
+    
+    closeModal.addEventListener('click', () => {
+      commitModal.style.display = 'none';
+    });
+    window.addEventListener('click', (e) => {
+      if (e.target === commitModal) {
+        commitModal.style.display = 'none';
+      }
+    });
+    
     document.getElementById('commitBtn').addEventListener('click', () => {
       if (!campaign) {
         alert('No campaign selected');
@@ -343,7 +373,16 @@ git add .
 git commit -m "saving ${campaignIdTimestamp} to github"
 
 git push`;
-      alert(gitCommands);
+      gitCommandsText.textContent = gitCommands;
+      commitModal.style.display = 'block';
+      // Auto-select all text for easy copying
+      setTimeout(() => {
+        const range = document.createRange();
+        range.selectNodeContents(gitCommandsText);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }, 100);
     });
     document.getElementById('exitBtn').addEventListener('click', async () => {
       if (confirm('Exit and close the server? This will close this window.')) {
