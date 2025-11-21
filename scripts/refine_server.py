@@ -149,6 +149,60 @@ class RefineHandler(SimpleHTTPRequestHandler):
             # Use a dedicated branch for all campaign instances to keep them separate from main
             campaign_branch = "campaign-instances"
             results = []
+            
+            # First, check if there are any changes to commit
+            status_check = subprocess.run(
+                ["git", "status", "--porcelain", campaign_path],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            # Check if files are untracked, modified, or deleted
+            has_changes = bool(status_check.stdout.strip())
+            
+            if not has_changes:
+                # Check if files exist but are already committed (untracked files won't show in status)
+                # Use git ls-files to check if files are tracked
+                ls_files = subprocess.run(
+                    ["git", "ls-files", "--error-unmatch", campaign_path],
+                    cwd=REPO_ROOT,
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                # If ls-files fails, files are untracked and need to be added
+                if ls_files.returncode != 0:
+                    # Files exist but are untracked - we should add them
+                    has_changes = True
+                else:
+                    # Files are tracked, check if there are any differences
+                    diff_check = subprocess.run(
+                        ["git", "diff", "--quiet", campaign_path],
+                        cwd=REPO_ROOT,
+                        capture_output=True,
+                        text=True,
+                        timeout=10
+                    )
+                    # diff --quiet returns 1 if there are differences, 0 if no differences
+                    has_changes = (diff_check.returncode == 1)
+            
+            if not has_changes:
+                self.send_response(200)
+                self._send_cors_headers()
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "ok": True,
+                    "results": [{
+                        "command": "No changes to commit",
+                        "success": True,
+                        "output": f"Campaign {campaign_id_timestamp} is already up to date. No changes to commit.",
+                        "error": ""
+                    }]
+                }).encode("utf-8"))
+                return
+            
             commands = [
                 ["git", "checkout", "-b", campaign_branch],  # Create branch if it doesn't exist
                 ["git", "add", campaign_path],
