@@ -66,19 +66,21 @@ Once you have the prerequisites, follow these steps:
 
 1. **Open a terminal window** (see above)
 
-2. **Create a directory for your projects** - Copy and paste this command, then press Enter:
+2. **Create a directory for your projects and go into it** - Copy and paste this command, then press Enter:
    ```bash
-   mkdir -p ~/my-github-projects
-   ```
-
-3. **Go into that directory** - Copy and paste this command, then press Enter:
-   ```bash
+   mkdir -p ~/my-github-projects;
    cd ~/my-github-projects
    ```
 
-4. **Download the project** - Copy and paste this command, then press Enter:
+3. **Fork the repository on GitHub:**
+   - Go to https://github.com/sbecker11/campaign-automation
+   - Click the **"Fork"** button in the top-right corner
+   - Choose where to fork it (your personal account)
+   - Wait for the fork to complete
+
+4. **Clone your fork** - Copy and paste this command, then press Enter (replace YOUR_USERNAME with your GitHub username):
    ```bash
-   git clone https://github.com/sbecker11/campaign-automation.git
+   git clone https://github.com/YOUR_USERNAME/campaign-automation.git
    ```
 
 5. **Go into the project folder** - Copy and paste this command, then press Enter:
@@ -98,6 +100,8 @@ The setup script will:
 - ✅ Install the package in editable mode
 - ✅ Guide you through configuring your OpenAI API key
 
+**Important:** Create a local `.env` file from `.env.example` and add your `OPENAI_API_KEY`. **Do not commit the `.env` file to GitHub** - it will trigger a security error. The `.env` file is already in `.gitignore` to prevent accidental commits.
+
 **Note:** The project root is `~/my-github-projects/campaign-automation`
 
 ---
@@ -108,9 +112,8 @@ campaign-automation/
 ├── inputs/
 │   └── campaigns/                      # Campaign configuration files (YAML)
 │       └── example_campaign.yaml       # Example campaign configuration
-├── outputs/                            # Symlink (shortcut) to external repo
-│   └── campaigns/                      # Generated campaign instances (stored in 
-|       |                               # separate campaign-automation-outputs repo)
+├── outputs/                            # Generated campaign instances directory
+│   └── campaigns/                      # Campaign instance folders (timestamped)
 │       └── summer_2024/
 │           ├── campaign_instance.json
 │           └── products/               # Product images by aspect ratio
@@ -149,7 +152,7 @@ campaign-automation/
 
 ## Run Tests
 ```bash
-# Make sure you're in the project directory
+# Make sure you're in the project root directory
 cd ~/my-github-projects/campaign-automation
 
 # Activate virtual environment (if not already active)
@@ -157,21 +160,38 @@ source venv/bin/activate
 
 # Run all tests with coverage
 ./scripts/run_tests_w_coverage.sh
+```
 
-# View coverage report in browser
-# Option 1 (macOS): Opens directly
-open htmlcov/index.html
+### Test Suite Overview
 
-# Option 2 (All platforms): Get file:// URL and open in browser
-# For macOS/Linux/Git Bash (Windows):
-COV_URL="file://$(pwd)/htmlcov/index.html"
-echo $COV_URL
-# Copy the output and paste it into your browser's address bar
+- **Total Tests**: 131 passing, 2 skipped
+- **Code Coverage**: 94%
+- **Execution Time**: ~3 seconds
 
-# For Windows cmd.exe (if not using Git Bash):
-# set COV_URL=file:///%CD:\=/%/htmlcov/index.html
-# echo %COV_URL%
+### Coverage Targets
+```
+Name                        Coverage
+------------------------------------
+src/__init__.py              100%
+src/asset_processor.py        95%
+src/campaign_parser.py       100%
+src/campaign_validator.py     98%
+src/content_checker.py        90%
+src/image_generator.py        90%
+src/instance_generator.py     95%
+src/pipeline.py               91%
+src/utils.py                 100%
+------------------------------------
+TOTAL                         94% (very strong coverage !!)
+```
 
+## Interactive Coverage Explorer
+
+An interactive coverage explorer has been created at `htmlcov/index.html`
+
+## Other Pytest Options
+
+```bash
 # Run specific test file
 pytest tests/test_campaign_parser.py -v
 
@@ -182,25 +202,9 @@ pytest tests/ -v --tb=short
 pytest tests/
 ```
 
-### Test Suite Overview
-
-- **Total Tests**: 78 passing, 2 skipped
-- **Code Coverage**: 75%
-- **Execution Time**: ~2.5 seconds
-
-### Coverage Targets
-
-- `content_checker.py`: 88%
-- `image_generator.py`: 88%
-- `campaign_parser.py`: 83%
-- `instance_generator.py`: 82%
-- `utils.py`: 100%
-- `pipeline.py`: 64%
-- `asset_processor.py`: 62%
-
 ---
 
-## Generating a Campaign
+## Generating a Campaign Instance from a Campaign Configuration
 
 ### Step 1: Review the Campaign Configurations
 
@@ -213,26 +217,26 @@ ls -R inputs/
 ```bash
 # View the example campaign configuration
 cat inputs/campaigns/example_campaign.yaml
+```
 
-----
 **What to review in the campaign configuration file:**
 
 1. **Campaign Information:**
-   - `campaign_id`: Unique identifier for this campaign. Used to create the campaign instance directory path: `outputs/campaigns/{campaign_id}_{timestamp}/` (e.g., `outputs/campaigns/summer_2024_20241116_143022/`). Each generation creates a new timestamped campaign instance, allowing you to generate multiple instances from the same campaign configuration.
+   - `campaign_id`: Unique identifier for this campaign configuration. Used to create the campaign instance directory path: `outputs/campaigns/{campaign_id}_{timestamp}/` (e.g., `outputs/campaigns/summer_2024_20241116_143022/`). Each generation creates a new timestamped campaign instance, allowing you to generate multiple instances from the same campaign configuration.
    - `campaign_name`: Display name for the campaign
    - `target_market` and `target_audience`: Used for targeting
-   - `campaign_tagline`: Campaign tagline that will appear on images
+   - `campaign_tagline`: Campaign tagline that will appear on resized product images
 
 2. **Products:**
    - `product_id`: Unique identifier for each product
-   - `name`: Product name
+   - `name`: Product display name
    - `description`: Product description
    - `generate_new`: Whether to generate new images with AI or use existing assets
    - `existing_assets`: Path to directory containing image files (if using existing assets)
    - For detailed product image configuration options, see [Product Image Configuration](docs/product_image_configuration.md)
 
 3. **Brand Guidelines:**
-   - `brand_colors`: Colors used as guidelines for AI image generation and validated in generated images
+   - `brand_colors`: Colors used as guidelines for AI image generation and validated in generated images (using css color format #RRGGBB)
    - `logo_path`: Path to your logo file (optional - see [Logo Requirements](docs/logo_requirements.md)) 
 
 4. **Aspect Ratios:**
@@ -251,44 +255,35 @@ cat inputs/campaigns/example_campaign.yaml
 
 **Expected runtime:** ~50 seconds (2 products × ~20 sec DALL-E generation each)
 
-**Expected cost:** ~$0.08 (2 products × $0.04/image)
+**Expected cost:** (2 products × $0.04/image) = ~$0.08 total DALL-E time
 
-### Step 2: Generate the Campaign
+### Step 2: Generate a Campaign Instance
 
-After reviewing the configuration, generate the campaign:
+After reviewing the configuration, generate a campaign instance:
 
 ```bash
 # Generate the default campaign (uses the most recently modified YAML file in inputs/campaigns/)
 ./scripts/generate_campaign.sh
 
-# Or generate a specific campaign file
+# Or generate an instance from a specific campaign configuration file
 ./scripts/generate_campaign.sh inputs/campaigns/example_campaign.yaml
 ```
 
 This will create a new campaign instance in `outputs/campaigns/` with a timestamp. The campaign instance directory structure will be:
 - `outputs/campaigns/{campaign_id}_{timestamp}/` - Main campaign directory
+  - `campaign_instance.json` - Campaign instance meta data
   - `products/` - Product images organized by product_id and aspect ratio
-  - `campaign_instance.json` - Consolidated campaign instance data
 
 Each generation creates a new timestamped campaign instance directory (format: `YYYYMMDD_HHMMSS`), so you can generate multiple instances from the same campaign configuration without overwriting previous results.
 
 ### Step 3: Review and Refine Campaign Instances
+
 ```bash
-# Open the refine UI for the latest campaign
+# Choose which product images are acceptable by opening the refine UI (defaults to most recently modified campaign instance)
 ./scripts/refine_campaign.sh
 
-# Or open a specific campaign
+# Or open a specific campaign instance
 ./scripts/refine_campaign.sh summer_2024_20251116_104032
-
-# View output structure manually
-ls -R outputs/campaigns/summer_2024_20251116_104032
-
-# View consolidated campaign data
-cat outputs/campaigns/summer_2024_20251116_104032/campaign_instance.json | python -m json.tool
-
-# Count generated files
-find outputs/campaigns/summer_2024_20251116_104032 -name "*.png" | wc -l
-# Expected: 6 images (2 products × 3 formats)
 ```
 
 **The `./scripts/refine_campaign.sh` script opens a web-based UI where you can:**
@@ -296,7 +291,7 @@ find outputs/campaigns/summer_2024_20251116_104032 -name "*.png" | wc -l
 - **HIDE OR SHOW IMAGES** - Mark images as hidden or visible
 - **ADD COMMENTS** - Add notes to individual images (max 512 characters)
 - **SAVE THE CAMPAIGN** - Use the "💾 Save Campaign" button to persist visibility and comments to `campaign_instance.json`
-- **COMMIT CAMPAIGN CHANGES TO GITHUB** - Use the "📦 Commit Campaign" button to commit campaign instances to the separate outputs repository
+- **COMMIT CAMPAIGN CHANGES TO GITHUB** - Use the "📦 Commit Campaign" button to commit campaign instances to the `campaign-instances` branch in your fork
 - **EXIT THE REFINE UI** - Use the "🚪 Exit" button to close the server and browser window
 
 The UI also provides:
@@ -312,60 +307,30 @@ The UI also provides:
 - ✅ Three aspect ratios per product
 - ✅ Brand colors present in images
 
-### Campaign Generation Flow
+### Other Ways to Review Campaign Instances
 
-The following diagram illustrates the complete campaign generation pipeline:
-
-![Campaign Generation Flow](docs/generate_campaign_flow.png)
-
-This flow shows how a campaign configuration file is processed through image generation, asset processing, validation, and reporting to produce the final campaign instances.
-
----
-
-## Refine Campaign Instances
-
-### Using the Refine UI
 ```bash
-# Open refine UI for the latest campaign
-./scripts/refine_campaign.sh
+# View output structure manually
+ls -R outputs/campaigns/summer_2024_20251116_104032
 
-# Open refine UI for a specific campaign
-./scripts/refine_campaign.sh summer_2024_20251116_104032
-```
+# View consolidated campaign data
+cat outputs/campaigns/summer_2024_20251116_104032/campaign_instance.json | python -m json.tool
 
-The `./scripts/refine_campaign.sh` script launches a web-based interface for reviewing and managing campaign instances. 
+# Count generated files for a specific campaign instance
+find outputs/campaigns/summer_2024_20251116_104032 -name "*.png" | wc -l
+# Expected: 6 images (2 products × 3 formats)
 
-**Workflow:**
-
-1. **HIDE OR SHOW IMAGES** - Click "🙈 Hide" to mark images as hidden (red border, grayscale effect) or "👁 Show" to mark hidden images as visible again
-
-2. **ADD COMMENTS** - Add notes to any image (stored in `campaign_instance.json`, max 512 characters per image)
-
-3. **SAVE THE CAMPAIGN** - Use the "💾 Save Campaign" button to persist all visibility and comment changes to `campaign_instance.json`
-
-4. **COMMIT CAMPAIGN CHANGES TO GITHUB** - Use the "📦 Commit Campaign" button to commit campaign instances to the separate outputs repository on a campaign-specific branch
-
-5. **EXIT THE REFINE UI** - Use the "🚪 Exit" button to close the server and browser window
-
-**Additional Features:**
-- 📸 Visual grid layout showing all generated images with thumbnails
-- 🔍 Filtering by product, variant/aspect ratio (1:1, 9:16, 16:9, etc.), and status (visible, hidden, or any)
-- 📊 Real-time hidden/visible counts that update as you work
-- ✅ Compliance indicators showing logo, color, and quality validation status per image
-
-### Quick Commands
-```bash
-# List all generated images
+# List all generated images across all campaigns
 find outputs/campaigns -name "*.png" -type f
 # Windows alternative (Git Bash): Same command works
 # Windows cmd.exe: dir /s /b outputs\campaigns\*.png
 
-# Count total images
+# Count total images across all campaigns
 find outputs/campaigns -name "*.png" | wc -l
 # Windows alternative (Git Bash): Same command works
 # Windows cmd.exe: dir /s /b outputs\campaigns\*.png | find /c ".png"
 
-# View by format
+# View images by format
 find outputs/campaigns -path "*/1x1/*.png"
 find outputs/campaigns -path "*/9x16/*.png"
 find outputs/campaigns -path "*/16x9/*.png"
@@ -381,50 +346,18 @@ du -sh outputs/campaigns/*/
 # Windows cmd.exe: for /d %d in (outputs\campaigns\*) do @dir /s "%d" | find "File(s)"
 ```
 
----
 
-## Campaign Instances and Repository Structure
+### Campaign Generation Flow
 
-**Important:** Campaign instance files (YAML, JSON, PNG) are stored in a **separate repository** (`campaign-automation-outputs`) to keep the main code repository lightweight.
+The following diagram illustrates the complete campaign generation pipeline:
 
-### Setting Up the Outputs Repository
+![Campaign Generation Flow](docs/generate_campaign_flow.png)
 
-The `outputs/` directory is a **symlink** (symbolic link - a shortcut that points to another location) to a separate Git repository. This allows:
-- ✅ Keeping generated images out of the main code repository
-- ✅ Version controlling campaign instances separately
-- ✅ Maintaining a clean, fast main repository
-
-**To set up the outputs repository:**
-1. Clone the separate outputs repository (if it exists) or create a new one
-2. Create a symlink: `ln -s /path/to/campaign-automation-outputs outputs`
-3. The `outputs/` directory will now point to the separate repository
-
-**Note:** If you're just getting started, you can use the `outputs/` directory normally - the symlink setup is optional for advanced workflows.
-
-### Preventing Accidental Commits
-
-The repository includes a **pre-commit hook** (an automated check that runs before Git commits) that prevents committing any files in the `outputs/` directory to the main code branch. This ensures:
-
-- ✅ Code changes stay in the main repository
-- ✅ Campaign instance files are committed to the separate outputs repository
-- ✅ No accidental commits of large binary/image files
-
-**If you try to commit files in `outputs/`, the commit will be blocked with an error message.**
-
-### Committing Campaign Instances
-
-To commit campaign instances, use one of these methods:
-
-1. **Via the Refine UI**: Use the "📦 Commit Campaign" button in the refine interface
-2. **Directly in outputs repo**: Navigate to the `campaign-automation-outputs` repository and commit there
-
-The pre-commit hook will guide you if you accidentally try to commit campaign instances to the main repo.
+This flow shows how a campaign configuration file is processed through image generation, asset processing, validation, and reporting to produce the final campaign instances.
 
 ---
 
----
-
-## Features
+## Comprehensive set of Project Features
 
 ### 🎨 GenAI Image Generation
 - DALL-E 3 integration with brand-aware prompts
@@ -468,93 +401,7 @@ The pre-commit hook will guide you if you accidentally try to commit campaign in
 - Centralized asset management
 - Easy to add new campaigns
 
----
-
-## Campaign Configuration Format
-
-### Basic Structure
-```yaml
-campaign_id: "unique_campaign_id"
-campaign_name: "Display Name"
-
-products:
-  - product_id: "product_id"
-    name: "Product Display Name"
-    description: "Product description"
-    # Choose one:
-    generate_new: true                    # AI-generate image (default)
-    # OR
-    generate_new: false
-    existing_assets: "path/to/assets/"    # Use existing photo
-
-target_market: "US"
-target_audience: "demographic_description"
-campaign_tagline: "Text overlay tagline"
-
-brand_guidelines:
-  brand_colors:
-    - "#HEX_COLOR_1"
-    - "#HEX_COLOR_2"
-
-aspect_ratios:
-  - "1:1"
-  - "9:16"
-  - "16:9"
-
-content_safety:
-  prohibited_words:
-    - "guaranteed"
-    - "miracle"
-```
-
-### Product Configuration Options
-
-For detailed information about configuring product images (AI generation vs. existing assets), see [Product Image Configuration](docs/product_image_configuration.md).
-
----
-
-## Creating a New Campaign
-```bash
-# 1. Create campaign YAML file
-cat > inputs/campaigns/my_campaign.yaml << 'YAML'
-campaign_id: "my_campaign_2024"
-campaign_name: "My Campaign"
-
-products:
-  - product_id: "product_1"
-    name: "Product Name"
-    description: "Product description"
-    generate_new: true
-
-target_market: "US"
-target_audience: "target_demographic"
-campaign_tagline: "Your tagline here"
-
-brand_guidelines:
-  brand_colors:
-    - "#FF6B35"
-
-aspect_ratios:
-  - "1:1"
-  - "9:16"
-  - "16:9"
-
-content_safety:
-  prohibited_words: []
-YAML
-
-# 2. (Optional) Add your logo file
-# If you want to use a logo, add it and specify logo_path in your campaign YAML
-# See docs/logo_requirements.md for format and dimension requirements
-cp your_logo.png assets/spexture.com-logo.png
-# Then specify the path in your campaign YAML: logo_path: "assets/spexture.com-logo.png"
-
-# 3. Generate campaign instance
-./scripts/generate_campaign.sh inputs/campaigns/my_campaign.yaml
-
-# 4. View campaign instance
-./scripts/refine_campaign.sh my_campaign_2024_20251116_104032
-```
+### Robust Unit testing
 
 ---
 
@@ -631,33 +478,10 @@ The pipeline follows a modular architecture with clear separation of concerns:
 - Extend `asset_processor.py` with new processing functions
 - Hook into the pipeline via `pipeline.py`
 
-### Development Setup
-
-```bash
-# Clone repository
-git clone https://github.com/sbecker11/campaign-automation.git
-cd campaign-automation
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Install package in editable mode
-pip install -e .
-
-# Run tests
-pytest tests/ -v
-
-# Run with coverage
-pytest tests/ -v --cov=src --cov-report=html
-```
 
 ### Code Quality
 
-- **Testing**: pytest with 75% code coverage target
+- **Testing**: pytest with 94% code coverage target
 - **Type Hints**: Python type annotations for better IDE support
 - **Modularity**: Each component is independently testable
 - **Error Handling**: Comprehensive error messages and validation
@@ -675,6 +499,8 @@ pytest tests/ -v --cov=src --cov-report=html
 - No external API calls required
 
 ### Environment Variables
+
+**Important:** Create a local `.env` file from `.env-example` and add your `OPENAI_API_KEY`. **Do not commit the `.env` file to GitHub** - it will trigger a security error. The `.env` file is already in `.gitignore` to prevent accidental commits.
 
 Required:
 - `OPENAI_API_KEY` - Your OpenAI API key (stored in `.env` file)
@@ -807,7 +633,8 @@ rm -rf outputs/campaigns/*
 For a 2-3 minute demo video, follow this flow:
 
 ### Part 1: Setup (45 seconds)
-- Clone repository
+- Fork repository on GitHub
+- Clone your fork
 - Create virtual environment
 - Install dependencies
 - Configure API key
@@ -840,7 +667,7 @@ cat outputs/campaigns/summer_2024_20251116_104032/campaign_instance.json | head 
 ### Part 5: Testing & Quality (25 seconds)
 ```bash
 pytest tests/ -v --cov=src --cov-report=html
-open htmlcov/index.html
+# An interactive coverage explorer has been created at htmlcov/index.html
 ```
 
 ### Part 6: Wrap Up (15 seconds)
@@ -854,8 +681,6 @@ See `DEMO_SCRIPT_COMPLETE.md` for the full detailed demo script.
 ## Glossary
 
 **Computer Vision** - Technology that enables computers to interpret and understand visual information from images, using algorithms to analyze patterns, colors, and shapes.
-
-**Symlink (Symbolic Link)** - A special file that acts as a reference to another file or directory, like a shortcut. The `outputs/` directory (which contains campaign instances) uses a symlink to point to a separate repository.
 
 **Pre-commit Hook** - An automated script that runs before Git commits to check code quality, prevent mistakes, or enforce policies.
 

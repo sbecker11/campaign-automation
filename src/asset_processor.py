@@ -330,7 +330,11 @@ class AssetProcessor:
     def _logo_needs_background(self, image: Image.Image, logo: Image.Image,
                                position: Tuple[int, int]) -> bool:
         """
-        Determine if logo needs a background by checking color similarity.
+        Determine if logo needs a background by checking multiple visibility factors:
+        - Color similarity between logo and background
+        - Contrast between logo and background
+        - Brightness difference
+        - Background complexity/variance
         
         Args:
             image: The base image
@@ -352,8 +356,13 @@ class AssetProcessor:
             if x2 <= x or y2 <= y:
                 return False
             
-            # Crop the background region
-            background_region = image.crop((x, y, x2, y2))
+            # Crop the background region (expand slightly to get better context)
+            padding = 5
+            bg_x = max(0, x - padding)
+            bg_y = max(0, y - padding)
+            bg_x2 = min(image.size[0], x2 + padding)
+            bg_y2 = min(image.size[1], y2 + padding)
+            background_region = image.crop((bg_x, bg_y, bg_x2, bg_y2))
             
             # Get dominant color of background region
             bg_color = self._get_dominant_color(background_region)
@@ -362,23 +371,53 @@ class AssetProcessor:
             logo_rgb = logo.convert('RGB')
             logo_color = self._get_dominant_color(logo_rgb)
             
-            # Calculate similarity
+            # Calculate brightness (luminance) for both colors
+            def luminance(rgb):
+                # Standard luminance formula
+                r, g, b = rgb
+                return (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+            
+            bg_luminance = luminance(bg_color)
+            logo_luminance = luminance(logo_color)
+            brightness_diff = abs(bg_luminance - logo_luminance)
+            
+            # Calculate color similarity
             similarity = self._color_similarity(bg_color, logo_color)
             
-            # If colors are very similar (>70% similar), add background
-            # This ensures logo is visible when it blends into the background
-            needs_background = similarity > 0.70
+            # Calculate contrast (difference in brightness)
+            # Low contrast (< 0.3) means logo won't be visible
+            contrast = brightness_diff
+            
+            # Calculate background variance (complexity)
+            # High variance means busy/complex background
+            bg_array = np.array(background_region.convert('L'))
+            bg_variance = np.var(bg_array) / 255.0  # Normalize to 0-1
+            
+            # Determine if background is needed based on multiple factors:
+            # 1. Colors are very similar (>70% similar)
+            # 2. Low contrast (< 0.3) - logo won't stand out
+            # 3. Both are very bright (>0.8) or both are very dark (<0.2) - low visibility
+            # 4. High background complexity (>0.15 variance) with low contrast
+            needs_background = (
+                similarity > 0.70 or  # Colors too similar
+                contrast < 0.30 or   # Low contrast
+                (bg_luminance > 0.8 and logo_luminance > 0.8) or  # Both very bright
+                (bg_luminance < 0.2 and logo_luminance < 0.2) or  # Both very dark
+                (bg_variance > 0.15 and contrast < 0.40)  # Complex background with low contrast
+            )
             
             if needs_background:
                 self.logger.info(
-                    f"Logo color matches background (similarity={similarity:.2f}) - adding semi-transparent black background"
+                    f"Logo needs background - similarity={similarity:.2f}, "
+                    f"contrast={contrast:.2f}, bg_lum={bg_luminance:.2f}, "
+                    f"logo_lum={logo_luminance:.2f}, bg_var={bg_variance:.2f}"
                 )
             
             return needs_background
             
         except Exception as e:
             self.logger.warning(f"Error checking logo background need: {e}")
-            # Default to adding background if we can't determine
+            # Default to adding background if we can't determine (safer)
             return True
     
     def _add_logo(self, image: Image.Image, logo_path: str, aspect_ratio: str) -> Image.Image:
@@ -449,9 +488,10 @@ class AssetProcessor:
                 bg_bottom = position[1] + logo_height + bg_padding
                 
                 # Draw semi-transparent black rectangle
+                # Increased opacity (200/255) for better logo visibility
                 overlay_draw.rectangle(
                     [bg_left, bg_top, bg_right, bg_bottom],
-                    fill=(0, 0, 0, 160)  # Semi-transparent black (alpha=160/255)
+                    fill=(0, 0, 0, 200)  # Semi-transparent black (alpha=200/255, ~78% opaque)
                 )
                 
                 # Composite the background

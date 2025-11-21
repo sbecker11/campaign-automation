@@ -9,8 +9,9 @@ from urllib.parse import urlparse, parse_qs
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Serve the entire project root (one level up from scripts/)
 PROJECT_ROOT = os.path.dirname(ROOT_DIR)
-# Outputs repository (separate repo for campaign outputs)
-OUTPUTS_REPO_ROOT = os.path.join(PROJECT_ROOT, "..", "campaign-automation-outputs")
+# Use the current repository (user's fork) for committing campaign instances
+# Campaign instances are committed to a separate branch in the same repo
+REPO_ROOT = PROJECT_ROOT
 
 # Global server reference for shutdown
 _server_instance = None
@@ -124,17 +125,17 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(b'{"error":"campaignIdTimestamp required"}')
                 return
 
-            # Check if outputs repo exists
-            if not os.path.isdir(OUTPUTS_REPO_ROOT):
+            # Check if this is a git repository
+            if not os.path.isdir(os.path.join(REPO_ROOT, ".git")):
                 self.send_response(500)
                 self._send_cors_headers()
                 self.end_headers()
-                self.wfile.write(json.dumps({"error": f"Outputs repository not found at {OUTPUTS_REPO_ROOT}"}).encode("utf-8"))
+                self.wfile.write(json.dumps({"error": f"Not a git repository: {REPO_ROOT}"}).encode("utf-8"))
                 return
 
-            # Campaign path in outputs repo
+            # Campaign path in current repo
             campaign_path = os.path.join("outputs", "campaigns", campaign_id_timestamp)
-            full_campaign_path = os.path.join(OUTPUTS_REPO_ROOT, campaign_path)
+            full_campaign_path = os.path.join(REPO_ROOT, campaign_path)
             
             # Check if campaign directory exists
             if not os.path.isdir(full_campaign_path):
@@ -144,13 +145,15 @@ class RefineHandler(SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Campaign directory not found: {campaign_path}"}).encode("utf-8"))
                 return
 
-            # Execute git commands in sequence (in outputs repo)
+            # Execute git commands in sequence (in current repo, on campaign-instances branch)
+            # Use a dedicated branch for all campaign instances to keep them separate from main
+            campaign_branch = "campaign-instances"
             results = []
             commands = [
-                ["git", "checkout", "-b", campaign_id_timestamp],
+                ["git", "checkout", "-b", campaign_branch],  # Create branch if it doesn't exist
                 ["git", "add", campaign_path],
                 ["git", "commit", "-m", f"Add campaign: {campaign_id_timestamp}"],
-                ["git", "push", "--set-upstream", "origin", campaign_id_timestamp]
+                ["git", "push", "--set-upstream", "origin", campaign_branch]
             ]
             
             try:
@@ -164,7 +167,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                     try:
                         proc = subprocess.run(
                             cmd,
-                            cwd=OUTPUTS_REPO_ROOT,
+                            cwd=REPO_ROOT,
                             capture_output=True,
                             text=True,
                             timeout=30
@@ -181,33 +184,33 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                 # Check if we're already on this branch
                                 current_branch = subprocess.run(
                                     ["git", "branch", "--show-current"],
-                                    cwd=OUTPUTS_REPO_ROOT,
+                                    cwd=REPO_ROOT,
                                     capture_output=True,
                                     text=True,
                                     timeout=30
                                 )
                                 current_branch_name = current_branch.stdout.strip() if current_branch.returncode == 0 else ""
                                 
-                                if current_branch_name == campaign_id_timestamp:
+                                if current_branch_name == campaign_branch:
                                     # Already on the correct branch, treat as success
                                     result["success"] = True
-                                    result["output"] = f"Already on branch '{campaign_id_timestamp}'"
+                                    result["output"] = f"Already on branch '{campaign_branch}'"
                                     result["error"] = ""
-                                    result["command"] = f"git checkout -b {campaign_id_timestamp} (already on branch)"
+                                    result["command"] = f"git checkout -b {campaign_branch} (already on branch)"
                                 else:
                                     # Try to checkout the existing branch instead
                                     checkout_existing = subprocess.run(
-                                        ["git", "checkout", campaign_id_timestamp],
-                                        cwd=OUTPUTS_REPO_ROOT,
+                                        ["git", "checkout", campaign_branch],
+                                        cwd=REPO_ROOT,
                                         capture_output=True,
                                         text=True,
                                         timeout=30
                                     )
                                     if checkout_existing.returncode == 0:
                                         result["success"] = True
-                                        result["output"] = checkout_existing.stdout.strip() or f"Switched to existing branch '{campaign_id_timestamp}'"
+                                        result["output"] = checkout_existing.stdout.strip() or f"Switched to existing branch '{campaign_branch}'"
                                         result["error"] = ""
-                                        result["command"] = f"git checkout {campaign_id_timestamp} (branch already existed)"
+                                        result["command"] = f"git checkout {campaign_branch} (branch already existed)"
                                     else:
                                         # Checkout failed - might be due to uncommitted changes
                                         checkout_error = checkout_existing.stderr.strip().lower()
@@ -215,7 +218,7 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                             # Stash changes, checkout branch, then pop stash
                                             stash_result = subprocess.run(
                                                 ["git", "stash"],
-                                                cwd=OUTPUTS_REPO_ROOT,
+                                                cwd=REPO_ROOT,
                                                 capture_output=True,
                                                 text=True,
                                                 timeout=30
@@ -223,8 +226,8 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                             if stash_result.returncode == 0:
                                                 # Now try checkout again
                                                 checkout_after_stash = subprocess.run(
-                                                    ["git", "checkout", campaign_id_timestamp],
-                                                    cwd=OUTPUTS_REPO_ROOT,
+                                                    ["git", "checkout", campaign_branch],
+                                                    cwd=REPO_ROOT,
                                                     capture_output=True,
                                                     text=True,
                                                     timeout=30
@@ -233,15 +236,15 @@ class RefineHandler(SimpleHTTPRequestHandler):
                                                     # Pop the stash to restore changes
                                                     pop_result = subprocess.run(
                                                         ["git", "stash", "pop"],
-                                                        cwd=OUTPUTS_REPO_ROOT,
+                                                        cwd=REPO_ROOT,
                                                         capture_output=True,
                                                         text=True,
                                                         timeout=30
                                                     )
                                                     result["success"] = True
-                                                    result["output"] = f"Stashed changes, switched to branch '{campaign_id_timestamp}', and restored changes"
+                                                    result["output"] = f"Stashed changes, switched to branch '{campaign_branch}', and restored changes"
                                                     result["error"] = ""
-                                                    result["command"] = f"git checkout {campaign_id_timestamp} (stashed and restored changes)"
+                                                    result["command"] = f"git checkout {campaign_branch} (stashed and restored changes)"
                                                 else:
                                                     result["error"] = f"Stashed changes but checkout still failed: {checkout_after_stash.stderr.strip()}"
                                             else:

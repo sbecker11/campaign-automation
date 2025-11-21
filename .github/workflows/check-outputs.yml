@@ -1,0 +1,32 @@
+name: Check for outputs in PR
+
+on:
+  pull_request:
+    paths:
+      - 'outputs/**'
+      - '.github/workflows/check-outputs.yml'
+
+jobs:
+  check-outputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check for outputs directory
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^outputs/' > /dev/null; then
+            echo "❌ ERROR: This PR contains changes to the outputs/ directory"
+            echo ""
+            echo "The outputs/ directory should not be committed to the main repository."
+            echo "Output files should be committed to a separate repository or fork."
+            echo ""
+            echo "Files changed in outputs/:"
+            git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^outputs/' | sed 's/^/  - /'
+            exit 1
+          else
+            echo "✅ No changes to outputs/ directory detected"
+          fi
+

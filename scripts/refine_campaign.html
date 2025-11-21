@@ -93,7 +93,7 @@
         <span class="close" id="closeModal">&times;</span>
       </div>
       <p style="margin-bottom: 12px; font-size: 13px; color: #666; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-        <strong>Note:</strong> Only the campaign outputs (images and JSON files) will be committed to the <code>campaign-automation-outputs</code> repository on branch <code id="commitBranchName"></code>. Code changes are not included.
+        <strong>Note:</strong> Campaign outputs (images and JSON files) will be committed to the <code>campaign-instances</code> branch in your fork. Code changes are not included.
       </p>
       <div id="commitResults"></div>
     </div>
@@ -188,8 +188,6 @@
             const p = prodSel.value;
             const a = aspSel.value;
             const s = document.getElementById('filter-status').value;
-            let visible = 0;
-            let delVisible = 0;
             cards.forEach(c => {
               const isDel = c.classList.contains('marked');
               const matchP = (p === 'any') || (c.dataset.product === p);
@@ -199,13 +197,9 @@
               else if (s === 'hidden') matchS = isDel;
               const show = matchP && matchA && matchS;
               c.style.display = show ? '' : 'none';
-              if (show) {
-                visible++;
-                if (isDel) delVisible++;
-              }
             });
-            delCount.textContent = delVisible;
-            keepCount.textContent = Math.max(0, visible - delVisible);
+            // Always update counts to show totals across all cards, not just filtered ones
+            updateCounts();
           }
           prodSel.addEventListener('change', applyFilters);
           aspSel.addEventListener('change', applyFilters);
@@ -353,8 +347,8 @@
       
       // Show modal with loading state
       commitModal.style.display = 'block';
-      document.getElementById('commitBranchName').textContent = campaignIdTimestamp;
-      commitResults.innerHTML = '<div class="loading">Committing campaign outputs to outputs repository...</div>';
+      // Branch name is fixed to 'campaign-instances' for all campaign commits
+      commitResults.innerHTML = '<div class="loading">Committing campaign outputs to campaign-instances branch...</div>';
       
       try {
         const resp = await fetch('/api/commit_campaign', {
